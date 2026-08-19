@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16.3
+    container_name: volt_db
+    environment:
+      POSTGRES_DB: volt
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./scripts:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+
+volumes:
+  db-data:
