@@ -27,6 +27,7 @@ go.work.sum
 # env file
 .envrc
 .env
+!.envrc.example
 
 # Editor/IDE
 .idea/

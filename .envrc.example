@@ -1,0 +1,23 @@
+export EVN_USERNAME=""
+export EVN_PASSWORD=""
+
+export APP_NAME=""
+export APP_ENV=""
+export SERVER_PORT=""
+export SERVER_READ_TIMEOUT=""
+export SERVER_WRITE_TIMEOUT=""
+
+export SERVER_TLS_MODE=""
+export SERVER_TLS_CERT_FILE=""
+export SERVER_TLS_KEY_FILE=""
+
+export DB_HOST=""
+export DB_PORT=""
+export DB_USER=""
+export DB_PASS=""
+export DB_NAME=""
+export DB_SSL_MODE=""
+
+export DB_MAX_OPEN_CONNECTIONS=""
+export DB_MAX_IDLE_CONNECTIONS=""
+export DB_MAX_IDLE_TIME=""

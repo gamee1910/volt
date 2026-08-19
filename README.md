@@ -26,7 +26,7 @@ The project is intended for personal and educational use.
                   Business Logic
                          |
                          v
-                   Telegram Bot
+                    Telegram Bot
 ```
 
 ### Stack
@@ -37,18 +37,40 @@ The project is intended for personal and educational use.
 | Database        | PostgreSQL (Supabase) | Persistent storage                   |
 | Scheduler       | GitHub Actions        | Cron-based worker, no VPS required   |
 | Notifications   | Telegram Bot API      | Push alerts to phone                 |
+| Live Reload     | Air                   | Live reloading during local dev      |
+| Env Management  | direnv                | Auto-load environment variables      |
 
-## Design Principles
 
-1. Keep it simple. No unnecessary abstractions.
-2. Separate the EVNHCMC client from business logic.
-3. One `http.Client` per session. Never recreate it between login and data fetch.
-4. Use `http.CookieJar` for automatic cookie management.
-5. No hardcoded credentials. Everything comes from environment variables.
-6. Never commit `.env` or `.envrc`.
-7. Do not guess EVNHCMC payload fields. Only use what has been observed in actual requests.
-8. Parse all responses into explicit Go structs.
-9. Get it working first, then refactor.
+## Development & Environment Setup
+
+### Tools
+
+- **Air**: Used for live reloading during Go application development (`.air.toml`).
+- **direnv**: Used to automatically load environment variables from `.envrc` upon entering the directory.
+
+### Environment Setup
+
+1. Configure your local environment variables in `.envrc`.
+2. Allow `direnv` to automatically load environment variables when navigating into the project directory
+
+
+```bash
+direnv allow
+```
+
+### Running Locally
+
+To run the application with live reload enabled via Air:
+
+```bash
+air
+```
+
+Or run directly using Go:
+
+```bash
+go run ./cmd/api
+```
 
 ## License
 
