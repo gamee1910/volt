@@ -1,15 +1,15 @@
 # Volt
 
-Electricity consumption tracker for EVNHCMC (Ho Chi Minh City Power Corporation). Built with Go.
+Volt is a personal project that collects electricity consumption data available through the EVNHCMC customer portal, stores historical data in PostgreSQL, and sends notifications through Telegram.
 
-Volt connects to the EVNHCMC customer portal, authenticates via session cookies, fetches daily electricity consumption data, stores it in PostgreSQL, and sends notifications to Telegram.
+The project is intended for personal and educational use.
 
 ## Architecture
 
 ```text
                     GitHub Actions
                   +----------------+
-                  | Cron every 30m |
+                  | Cron / Worker  |
                   +-------+--------+
                           |
                           v
@@ -17,8 +17,8 @@ Volt connects to the EVNHCMC customer portal, authenticates via session cookies,
                           |
               +-----------+-----------+
               v                       v
-        EVNHCMC API                Supabase
-        login + cookie             PostgreSQL
+        EVNHCMC Portal            Supabase
+        HTTP Client               PostgreSQL
               |                       |
               +----------+------------+
                          |
@@ -52,4 +52,4 @@ Volt connects to the EVNHCMC customer portal, authenticates via session cookies,
 
 ## License
 
-Private project.
+MIT
