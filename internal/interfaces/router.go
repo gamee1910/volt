@@ -1,11 +1,11 @@
-package routes
+package interfaces
 
 import (
 	"database/sql"
 	"net/http"
 
-	"github.com/gamee1910/volt/internal/routes/client/evnhcmc"
-	"github.com/gamee1910/volt/internal/routes/handler"
+	"github.com/gamee1910/volt/internal/infrastructure/evnhcmc"
+	"github.com/gamee1910/volt/internal/interfaces/http/handler"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )

@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/gamee1910/volt/internal/config"
-	"github.com/gamee1910/volt/internal/routes"
-	"github.com/gamee1910/volt/internal/routes/client/evnhcmc"
+	"github.com/gamee1910/volt/internal/infrastructure/evnhcmc"
+	"github.com/gamee1910/volt/internal/interfaces"
 	"github.com/gamee1910/volt/pkg/logger"
 )
 
@@ -31,7 +31,7 @@ func main() {
 	if err != nil {
 		logger.Fatal("Không thể khởi tạo EVN client", "error", err)
 	}
-	router := routes.SetupRouter(databaseConnection, evnClient)
+	router := interfaces.SetupRouter(databaseConnection, evnClient)
 
 	server := &http.Server{
 		Addr:         ":" + cfg.ServerConfig.Port,

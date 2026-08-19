@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/gamee1910/volt/internal/routes/client/evnhcmc"
+	"github.com/gamee1910/volt/internal/infrastructure/evnhcmc"
 	"github.com/gamee1910/volt/pkg/logger"
 )
 
@@ -31,7 +31,7 @@ func GetDailyPowerUsageHandler(evnClient *evnhcmc.EVNClient) http.HandlerFunc {
 			return
 		}
 
-		req := evnhcmc.FaradRequest{
+		req := evnhcmc.DailyPowerUsageRequest{
 			CustomerCode: r.FormValue("input_makh"),
 			FromDate:     r.FormValue("input_tungay"),
 			ToDate:       r.FormValue("input_denngay"),
