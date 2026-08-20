@@ -4,13 +4,13 @@ import (
 	"database/sql"
 	"net/http"
 
-	"github.com/gamee1910/volt/internal/infrastructure/evnhcmc"
+	"github.com/gamee1910/volt/internal/infrastructure/di"
 	"github.com/gamee1910/volt/internal/interfaces/http/handler"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-func SetupRouter(db *sql.DB, evnClient *evnhcmc.EVNClient) http.Handler {
+func SetupRouter(db *sql.DB, container *di.Container) http.Handler {
 	router := chi.NewRouter()
 	router.Use(middleware.RequestID)
 	router.Use(middleware.ClientIPFromRemoteAddr)
@@ -26,7 +26,7 @@ func SetupRouter(db *sql.DB, evnClient *evnhcmc.EVNClient) http.Handler {
 		_, _ = w.Write([]byte("OK"))
 	})
 
-	router.Post("/login", handler.LoginHandler(evnClient))
-	router.Post("/daily", handler.GetDailyPowerUsageHandler(evnClient))
+	router.Post("/login", handler.LoginHandler(container.EVNClient()))
+	router.Post("/daily", handler.GetDailyPowerUsageHandler(container.EVNClient()))
 	return router
 }

@@ -8,6 +8,7 @@ import (
 )
 
 type ElectricityRepository interface {
-	Save(context.Context, *entity.ElectricityConsumption) error
+	Insert(context.Context, *entity.ElectricityConsumption) error
 	FindByDate(context.Context, time.Time) (*entity.ElectricityConsumption, error)
+	FindAll(context.Context) ([]*entity.ElectricityConsumption, error)
 }

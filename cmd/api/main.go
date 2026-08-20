@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/gamee1910/volt/internal/config"
-	"github.com/gamee1910/volt/internal/infrastructure/evnhcmc"
+	"github.com/gamee1910/volt/internal/infrastructure/di"
 	"github.com/gamee1910/volt/internal/interfaces"
 	"github.com/gamee1910/volt/pkg/logger"
 )
@@ -27,11 +27,12 @@ func main() {
 	}
 	defer closeDB(databaseConnection, log)
 
-	evnClient, err := evnhcmc.NewEVNClient()
+	container, err := di.NewContainer(cfg, databaseConnection)
 	if err != nil {
-		logger.Fatal("Không thể khởi tạo EVN client", "error", err)
+		log.Fatal("failed to initialize container", "error", err)
 	}
-	router := interfaces.SetupRouter(databaseConnection, evnClient)
+
+	router := interfaces.SetupRouter(databaseConnection, container)
 
 	server := &http.Server{
 		Addr:         ":" + cfg.ServerConfig.Port,
@@ -66,6 +67,7 @@ func main() {
 	}()
 	gracefulShutdown(server, log)
 }
+
 func closeDB(db *sql.DB, log *logger.Logger) {
 	if err := db.Close(); err != nil {
 		log.Error("failed to close database", "error", err)

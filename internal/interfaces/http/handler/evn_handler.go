@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/gamee1910/volt/internal/infrastructure/evnhcmc"
+	"github.com/gamee1910/volt/internal/client"
+	"github.com/gamee1910/volt/internal/interfaces/http/handler/request"
 	"github.com/gamee1910/volt/pkg/logger"
 )
 
-func LoginHandler(evnClient *evnhcmc.EVNClient) http.HandlerFunc {
+func LoginHandler(evnClient client.EvnhcmcClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := evnClient.Login(r.Context()); err != nil {
 			logger.Error("EVNHCMC login failed", "error", err)
@@ -23,7 +24,7 @@ func LoginHandler(evnClient *evnhcmc.EVNClient) http.HandlerFunc {
 	}
 }
 
-func GetDailyPowerUsageHandler(evnClient *evnhcmc.EVNClient) http.HandlerFunc {
+func GetDailyPowerUsageHandler(evnClient client.EvnhcmcClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := r.ParseMultipartForm(10 << 20); err != nil {
 			logger.Error("Parse multipart form failed", "error", err)
@@ -31,7 +32,7 @@ func GetDailyPowerUsageHandler(evnClient *evnhcmc.EVNClient) http.HandlerFunc {
 			return
 		}
 
-		req := evnhcmc.DailyPowerUsageRequest{
+		req := request.DailyPowerUsageRequest{
 			CustomerCode: r.FormValue("input_makh"),
 			FromDate:     r.FormValue("input_tungay"),
 			ToDate:       r.FormValue("input_denngay"),

@@ -25,16 +25,15 @@ func NewLogger(env string) *Logger {
 		cfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	} else {
 		cfg = zap.NewDevelopmentConfig()
-
 		cfg.Encoding = "console"
-		cfg.DisableCaller = true
 		cfg.DisableStacktrace = true
 
-		cfg.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout("15:04:05")
+		cfg.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout("02/01/2006 15:04:05")
 		cfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+		cfg.EncoderConfig.EncodeCaller = zapcore.ShortCallerEncoder
 	}
 
-	logger, err := cfg.Build()
+	logger, err := cfg.Build(zap.AddCallerSkip(1))
 	if err != nil {
 		panic(err)
 	}
@@ -72,4 +71,11 @@ func Infof(format string, args ...any) {
 
 func Fatal(args ...any) {
 	L().SugaredLogger.Fatal(args...)
+}
+
+func Sync() error {
+	if globalLogger != nil {
+		return globalLogger.Sync()
+	}
+	return nil
 }
