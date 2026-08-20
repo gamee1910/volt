@@ -65,11 +65,3 @@ func (c *Container) initServices(r repositories) services {
 		electricityService: application.NewElectricityService(r.electricityRepository, c.evnClient),
 	}
 }
-
-func (c *Container) Config() *config.Configuration {
-	return c.cfg
-}
-
-func (c *Container) EVNClient() *evnhcm.EVNClient {
-	return c.evnClient
-}

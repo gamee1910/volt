@@ -12,7 +12,7 @@ import (
 
 	"github.com/gamee1910/volt/internal/config"
 	"github.com/gamee1910/volt/internal/infrastructure/di"
-	"github.com/gamee1910/volt/internal/interfaces"
+	http2 "github.com/gamee1910/volt/internal/interfaces/http"
 	"github.com/gamee1910/volt/pkg/logger"
 )
 
@@ -32,7 +32,7 @@ func main() {
 		log.Fatal("failed to initialize container", "error", err)
 	}
 
-	router := interfaces.SetupRouter(databaseConnection, container)
+	router := http2.SetupRouter(databaseConnection, container)
 
 	server := &http.Server{
 		Addr:         ":" + cfg.ServerConfig.Port,

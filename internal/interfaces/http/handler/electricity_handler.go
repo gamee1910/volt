@@ -6,7 +6,7 @@ import (
 
 	"github.com/gamee1910/volt/internal/config"
 	"github.com/gamee1910/volt/internal/domain/service"
-	"github.com/gamee1910/volt/internal/interfaces/http/handler/request"
+	"github.com/gamee1910/volt/internal/interfaces/http/transport/request"
 	"github.com/gamee1910/volt/pkg/evnhcm"
 )
 

@@ -1,4 +1,4 @@
-package interfaces
+package http
 
 import (
 	"database/sql"

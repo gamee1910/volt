@@ -40,8 +40,6 @@ func NewEVNClient(baseURL *url.URL) (*EVNClient, error) {
 		return nil, err
 	}
 
-	logger.Infof("cookie: %v", jar.Cookies(baseURL))
-
 	return &EVNClient{
 		httpClient: &http.Client{
 			Timeout: 20 * time.Second,
