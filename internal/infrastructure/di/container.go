@@ -2,50 +2,48 @@ package di
 
 import (
 	"database/sql"
-	"net/url"
+	"fmt"
 
 	"github.com/gamee1910/volt/internal/application"
-	"github.com/gamee1910/volt/internal/client"
 	"github.com/gamee1910/volt/internal/config"
 	"github.com/gamee1910/volt/internal/domain/repository"
 	"github.com/gamee1910/volt/internal/domain/service"
-	"github.com/gamee1910/volt/internal/infrastructure/client/evn"
 	"github.com/gamee1910/volt/internal/infrastructure/persistences/postgres"
-)
-
-const (
-	defaultBaseURL = ""
+	"github.com/gamee1910/volt/internal/interfaces/http/handler"
+	"github.com/gamee1910/volt/pkg/evnhcm"
 )
 
 type Container struct {
-	cfg *config.Configuration
-	db  *sql.DB
+	cfg                *config.Configuration
+	db                 *sql.DB
+	evnClient          *evnhcm.EVNClient
+	electricityHandler *handler.ElectricityHandler
+}
 
-	//handler
-
-	//client
-	evnClient client.EvnhcmcClient
+func (c *Container) ElectricityHandler() *handler.ElectricityHandler {
+	return c.electricityHandler
 }
 
 func NewContainer(cfg *config.Configuration, db *sql.DB) (*Container, error) {
-	c := &Container{cfg: cfg, db: db}
-
-	if err := c.initEVNHCMCClient(); err != nil {
-		return nil, err
+	evnClient, err := evnhcm.NewEVNClient(nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create EVN client: %w", err)
 	}
 
+	c := &Container{
+		cfg:       cfg,
+		db:        db,
+		evnClient: evnClient,
+	}
 	c.initializerHandler()
-
 	return c, nil
-}
-
-func (c *Container) EVNClient() client.EvnhcmcClient {
-	return c.evnClient
 }
 
 func (c *Container) initializerHandler() {
 	repositories := c.initRepositories()
-	c.initServices(repositories)
+	services := c.initServices(repositories)
+
+	c.electricityHandler = handler.NewElectricityHandler(services.electricityService, c.cfg)
 }
 
 type repositories struct {
@@ -64,21 +62,14 @@ type services struct {
 
 func (c *Container) initServices(r repositories) services {
 	return services{
-		electricityService: application.NewElectricityService(r.electricityRepository),
+		electricityService: application.NewElectricityService(r.electricityRepository, c.evnClient),
 	}
 }
 
-func (c *Container) initEVNHCMCClient() error {
-	parsedURL, err := url.Parse(defaultBaseURL)
-	if err != nil {
-		return err
-	}
+func (c *Container) Config() *config.Configuration {
+	return c.cfg
+}
 
-	evnClient, err := evn.NewEVNClient(parsedURL)
-	if err != nil {
-		return err
-	}
-
-	c.evnClient = evnClient
-	return nil
+func (c *Container) EVNClient() *evnhcm.EVNClient {
+	return c.evnClient
 }

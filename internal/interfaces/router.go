@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/gamee1910/volt/internal/infrastructure/di"
-	"github.com/gamee1910/volt/internal/interfaces/http/handler"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -26,7 +25,8 @@ func SetupRouter(db *sql.DB, container *di.Container) http.Handler {
 		_, _ = w.Write([]byte("OK"))
 	})
 
-	router.Post("/login", handler.LoginHandler(container.EVNClient()))
-	router.Post("/daily", handler.GetDailyPowerUsageHandler(container.EVNClient()))
+	router.Post("/login", container.ElectricityHandler().Login)
+	router.Post("/get-usage", container.ElectricityHandler().GetAll)
+
 	return router
 }

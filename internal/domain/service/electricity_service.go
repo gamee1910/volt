@@ -2,13 +2,12 @@ package service
 
 import (
 	"context"
-	"time"
 
-	"github.com/gamee1910/volt/internal/domain/entity"
+	"github.com/gamee1910/volt/internal/interfaces/http/handler/response"
+	"github.com/gamee1910/volt/pkg/evnhcm"
 )
 
 type ElectricityService interface {
-	Save(context.Context, *entity.ElectricityConsumption) error
-	GetAll(context.Context) ([]*entity.ElectricityConsumption, error)
-	GetByDate(context.Context, time.Time) (*entity.ElectricityConsumption, error)
+	LoginEVN(ctx context.Context, username, password string) error
+	FetchAndSyncMonthlyUsage(ctx context.Context, req evnhcm.DailyPowerUsageRequest) (*response.MonthlyElectricityResponse, error)
 }

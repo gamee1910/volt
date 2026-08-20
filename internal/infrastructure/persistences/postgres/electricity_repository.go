@@ -23,7 +23,12 @@ func NewElectricityRepository(db *sql.DB) repository.ElectricityRepository {
 func (repository *ElectricityRepository) Insert(
 	ctx context.Context, req *entity.ElectricityConsumption,
 ) error {
-	query := `INSERT INTO electricity_consumption(reading_date, consumption_kwh, created_at) VALUES ($1, $2, NOW())`
+	query := `
+		INSERT INTO electricity_consumption(reading_date, consumption_kwh, created_at)
+		VALUES ($1, $2, NOW())
+		ON CONFLICT (reading_date) DO UPDATE
+		SET consumption_kwh = EXCLUDED.consumption_kwh
+	`
 
 	_, err := repository.db.ExecContext(ctx, query, req.ReadingDate, req.ConsumptionKWh)
 	if err != nil {
