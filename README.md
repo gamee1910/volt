@@ -75,8 +75,8 @@ Volt is a Go-based backend application designed to collect electricity consumpti
    export EVN_PASSWORD="your_password"
    export EVN_CUSTOMER="your_customer_code"
    export EVN_BASE_URL=""
-   export EVN_PATH_LOGIN=""
-   export EVN_PATH_DIEN_NANG_NGAY=""
+   export EVN_LOGIN_API=""
+   export EVN_ELECTRICITY_CONSUMPTION_API=""
 
    export DB_HOST="localhost"
    export DB_PORT="5432"

@@ -4,13 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"sync"
 	"time"
-)
-
-var (
-	globalConfig *Configuration
-	once         sync.Once
 )
 
 type Configuration struct {
@@ -66,8 +60,8 @@ func Load() *Configuration {
 			Password:         GetEnv("EVN_PASSWORD", ""),
 			CustomerCode:     GetEnv("EVN_CUSTOMER", ""),
 			BaseURL:          GetEnv("EVN_BASE_URL", ""),
-			PathLogin:        GetEnv("EVN_PATH_LOGIN", ""),
-			PathDienNangNgay: GetEnv("EVN_PATH_DIEN_NANG_NGAY", ""),
+			PathLogin:        GetEnv("EVN_LOGIN_API", ""),
+			PathDienNangNgay: GetEnv("EVN_ELECTRICITY_CONSUMPTION_API", ""),
 		},
 		ApplicationConfig: ApplicationConfig{
 			Name: GetEnv("APP_NAME", "social"),
@@ -95,13 +89,6 @@ func Load() *Configuration {
 			},
 		},
 	}
-}
-
-func Get() *Configuration {
-	once.Do(func() {
-		globalConfig = Load()
-	})
-	return globalConfig
 }
 
 func (c DatabaseConfig) DatabaseDSN() string {
