@@ -1,76 +1,119 @@
 # Volt
 
-Volt is a personal project that collects electricity consumption data available through the EVNHCMC customer portal, stores historical data in PostgreSQL, and sends notifications through Telegram.
+Volt is a Go-based backend application designed to collect electricity consumption data from the EVNHCMC customer portal, store daily usage records in PostgreSQL, calculate tier-based electricity billing costs (with VAT), and send alerts via Telegram.
 
-The project is intended for personal and educational use.
+> [!CAUTION]
+> This project is intended for personal and educational use only.
+>
+> The project is not affiliated with, endorsed by, or associated with EVNHCMC or any government entity.
+
+---
 
 ## Architecture
 
 ```text
-                    GitHub Actions
-                  +----------------+
-                  | Cron / Worker  |
-                  +-------+--------+
-                          |
-                          v
-                    Go Application
-                          |
-              +-----------+-----------+
-              v                       v
-        EVNHCMC Portal            Supabase
-        HTTP Client               PostgreSQL
-              |                       |
-              +----------+------------+
-                         |
-                         v
-                  Business Logic
-                         |
-                         v
-                    Telegram Bot
+                    GitHub Actions / External Cron
+                         +----------------+
+                         |  Cron Worker   |
+                         +-------+--------+
+                                 |
+                                 v
+                       Volt API (Go Server)
+                                 |
+             +-------------------+-------------------+
+             v                                       v
+      EVNHCMC Portal                       PostgreSQL (Supabase)
+    (HTTP Multipart API)                   (Electricity Storage)
+             |                                       |
+             +-------------------+-------------------+
+                                 |
+                                 v
+                     Business & Billing Engine
+                         (Tier Calculation)
+                                 |
+                                 v
+                            Telegram Bot
 ```
 
-### Stack
+### Tech Stack & Features
 
-| Component       | Technology            | Purpose                              |
-|-----------------|-----------------------|--------------------------------------|
-| Backend         | Go                    | HTTP client, business logic, worker  |
-| Database        | PostgreSQL (Supabase) | Persistent storage                   |
-| Scheduler       | GitHub Actions        | Cron-based worker, no VPS required   |
-| Notifications   | Telegram Bot API      | Push alerts to phone                 |
-| Live Reload     | Air                   | Live reloading during local dev      |
-| Env Management  | direnv                | Auto-load environment variables      |
+| Component       | Technology                                                  | Description                                                 |
+|-----------------|-------------------------------------------------------------|-------------------------------------------------------------|
+| **Runtime**     | [Go](https://go.dev/)                                       | HTTP server & business logic                                |
+| **Router**      | [Chi](https://github.com/go-chi/chi)                        | High-performance HTTP router                                |
+| **Database**    | [PostgreSQL](https://www.postgresql.org/)                   | Storage for electricity consumption history                 |
+| **Live Reload** | [Air](https://github.com/air-verse/air)                     | Hot reloading during local development                      |
+| **Environment** | [direnv](https://direnv.net/)                               | Automatic environment variable management                   |
+| **Migrations**  | [golang-migrate](https://github.com/golang-migrate/migrate) | Database migration management                               |
+| **Logging**     | [Zap](https://github.com/uber-go/zap)                       | High-performance logging                                    |
+| **Docker**      | [Docker](https://www.docker.com/)                           | Containerization                                            |
+| **Docker Compose** | [Docker Compose](https://docs.docker.com/compose/)         | Container orchestration                                     |
 
+---
 
 ## Development & Environment Setup
 
-### Tools
+### Prerequisites
 
-- **Air**: Used for live reloading during Go application development (`.air.toml`).
-- **direnv**: Used to automatically load environment variables from `.envrc` upon entering the directory.
+- Go 1.22+
+- PostgreSQL database
+- [direnv](https://direnv.net/) (optional, for auto-loading `.envrc`)
+- [Air](https://github.com/air-verse/air) (optional, for live reload)
 
-### Environment Setup
+### Environment Configuration
 
-1. Configure your local environment variables in `.envrc`.
-2. Allow `direnv` to automatically load environment variables when navigating into the project directory
+1. Copy `.envrc.example` to `.envrc`:
 
+   ```bash
+   cp .envrc.example .envrc
+   ```
 
-```bash
-direnv allow
-```
+2. Fill in your environment parameters in `.envrc`:
+
+   ```bash
+   export EVN_USERNAME="your_username"
+   export EVN_PASSWORD="your_password"
+   export EVN_CUSTOMER="your_customer_code"
+   export EVN_BASE_URL=""
+   export EVN_PATH_LOGIN=""
+   export EVN_PATH_DIEN_NANG_NGAY=""
+
+   export DB_HOST="localhost"
+   export DB_PORT="5432"
+   export DB_USER="admin"
+   export DB_PASS="password"
+   export DB_NAME="volt"
+   ```
+
+> [!NOTE]
+> `EVN_BASE_URL`, `EVN_PATH_LOGIN`, and `EVN_PATH_DIEN_NANG_NGAY` are required for EVNHCMC API integration.
+>
+> - **Contact**: Please reach out to the maintainer if you need assistance regarding API endpoints.
+> - **Disclaimer**: The maintainer assumes no responsibility or liability for any misuse, service disruption, or non-compliance.
+
+3. Allow `direnv` to load variables automatically:
+
+   ```bash
+   direnv allow
+   ```
 
 ### Running Locally
 
-To run the application with live reload enabled via Air:
+Run with live reloading using Air:
 
 ```bash
 air
 ```
 
-Or run directly using Go:
+### Running Tests
+
+Execute unit tests across all packages:
 
 ```bash
-go run ./cmd/api
+go test ./...
 ```
+
+---
 
 ## License
 
