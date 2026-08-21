@@ -16,12 +16,6 @@ import (
 	"github.com/gamee1910/volt/internal/interfaces/http/payload/response"
 )
 
-const (
-	defaultBaseURL   = ""
-	pathLogin        = ""
-	pathDienNangNgay = ""
-)
-
 type EVNClient struct {
 	httpClient       *http.Client
 	baseURL          *url.URL
@@ -31,13 +25,13 @@ type EVNClient struct {
 
 func NewEVNClient(rawBaseURL, rawPathLogin, rawPathDienNangNgay string) (*EVNClient, error) {
 	if rawBaseURL == "" {
-		rawBaseURL = defaultBaseURL
+		return nil, fmt.Errorf("EVN_BASE_URL is required")
 	}
 	if rawPathLogin == "" {
-		rawPathLogin = pathLogin
+		return nil, fmt.Errorf("EVN_PATH_LOGIN is required")
 	}
 	if rawPathDienNangNgay == "" {
-		rawPathDienNangNgay = pathDienNangNgay
+		return nil, fmt.Errorf("EVN_PATH_DIEN_NANG_NGAY is required")
 	}
 
 	parsedBaseURL, err := url.Parse(rawBaseURL)

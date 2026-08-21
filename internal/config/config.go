@@ -62,9 +62,9 @@ type DatabaseConfig struct {
 func Load() *Configuration {
 	return &Configuration{
 		EnvConfig: EvnConfig{
-			Username:         GetEnv("EVN_USERNAME", "USER"),
-			Password:         GetEnv("EVN_PASSWORD", "PASS"),
-			CustomerCode:     GetEnv("EVN_CUSTOMER", "CUSTOMER"),
+			Username:         GetEnv("EVN_USERNAME", ""),
+			Password:         GetEnv("EVN_PASSWORD", ""),
+			CustomerCode:     GetEnv("EVN_CUSTOMER", ""),
 			BaseURL:          GetEnv("EVN_BASE_URL", ""),
 			PathLogin:        GetEnv("EVN_PATH_LOGIN", ""),
 			PathDienNangNgay: GetEnv("EVN_PATH_DIEN_NANG_NGAY", ""),
