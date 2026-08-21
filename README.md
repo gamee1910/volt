@@ -86,7 +86,7 @@ Volt is a Go-based backend application designed to collect electricity consumpti
    ```
 
 > [!NOTE]
-> `EVN_BASE_URL`, `EVN_PATH_LOGIN`, and `EVN_PATH_DIEN_NANG_NGAY` are required for EVNHCMC API integration.
+> `EVN_BASE_URL`, `EVN_LOGIN_API`, and `EVN_ELECTRICITY_CONSUMPTION_API` are required for EVNHCMC API integration.
 >
 > - **Contact**: Please reach out to the maintainer if you need assistance regarding API endpoints.
 > - **Disclaimer**: The maintainer assumes no responsibility or liability for any misuse, service disruption, or non-compliance.
