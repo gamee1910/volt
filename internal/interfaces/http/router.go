@@ -26,7 +26,8 @@ func SetupRouter(db *sql.DB, container *di.Container) http.Handler {
 	})
 
 	router.Post("/login", container.ElectricityHandler().Login)
-	router.Post("/get-usage", container.ElectricityHandler().GetAll)
+	router.Post("/sync", container.ElectricityHandler().SyncFromEVN)
+	router.Get("/", container.ElectricityHandler().GetAll)
 
 	return router
 }

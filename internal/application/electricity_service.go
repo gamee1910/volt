@@ -9,32 +9,30 @@ import (
 	"github.com/gamee1910/volt/internal/domain/entity"
 	"github.com/gamee1910/volt/internal/domain/repository"
 	"github.com/gamee1910/volt/internal/domain/service"
+	"github.com/gamee1910/volt/internal/interfaces/http/transport/request"
 	"github.com/gamee1910/volt/internal/interfaces/http/transport/response"
-	"github.com/gamee1910/volt/pkg/evnhcm"
 )
 
 type electricityService struct {
 	electricityRepository repository.ElectricityRepository
-	evnClient             *evnhcm.EVNClient
+	evnClient             service.EVNClient
 }
 
 func NewElectricityService(
 	electricityRepository repository.ElectricityRepository,
-	evnClient *evnhcm.EVNClient,
+	evnClient service.EVNClient,
 ) service.ElectricityService {
 	return &electricityService{
 		electricityRepository: electricityRepository,
 		evnClient:             evnClient,
 	}
 }
-
 func (s *electricityService) LoginEVN(ctx context.Context, username string, password string) error {
 	return s.evnClient.Login(ctx, username, password)
 }
 
 func (s *electricityService) FetchAndSyncMonthlyUsage(
-	ctx context.Context,
-	req evnhcm.DailyPowerUsageRequest,
+	ctx context.Context, req request.DailyPowerUsageRequest,
 ) (*response.MonthlyElectricityResponse, error) {
 	resp, err := s.evnClient.GetDailyPowerUsageData(ctx, req)
 	if err != nil {
@@ -45,10 +43,7 @@ func (s *electricityService) FetchAndSyncMonthlyUsage(
 	var consumptions []*entity.ElectricityConsumption
 
 	for _, item := range resp.Data.DailyOutputs {
-		readingDate, err := time.Parse("02/01/2006", item.Date)
-		if err != nil {
-			readingDate, _ = time.Parse("2006-01-02", item.FullDate)
-		}
+		readingDate := parseDate(item.MeasurementTimestamp, item.Date, item.FullDate)
 
 		kwh, _ := strconv.ParseFloat(item.TotalOutput, 64)
 		if kwh == 0 {
@@ -56,8 +51,8 @@ func (s *electricityService) FetchAndSyncMonthlyUsage(
 		}
 
 		consumption := &entity.ElectricityConsumption{
-			ReadingDate:    readingDate,
-			ConsumptionKWh: kwh,
+			MeasurementDate: readingDate,
+			ConsumptionKWh:  kwh,
 		}
 
 		if err = s.electricityRepository.Insert(ctx, consumption); err != nil {
@@ -74,6 +69,25 @@ func (s *electricityService) FetchAndSyncMonthlyUsage(
 		TotalKWh:    totalKWh,
 		TotalAmount: totalAmount,
 		Data:        consumptions,
+	}, nil
+}
+
+func (s *electricityService) GetAll(ctx context.Context) (*response.MonthlyElectricityResponse, error) {
+	resp, err := s.electricityRepository.FindAll(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch: %w", err)
+	}
+
+	var totalKWh float64
+	for _, v := range resp {
+		totalKWh += v.ConsumptionKWh
+	}
+	totalAmount := calculateElectricityBill(totalKWh)
+
+	return &response.MonthlyElectricityResponse{
+		TotalKWh:    totalKWh,
+		TotalAmount: totalAmount,
+		Data:        resp,
 	}, nil
 }
 
@@ -106,4 +120,25 @@ func calculateElectricityBill(totalKWh float64) float64 {
 	// Cộng thêm 8% thuế VAT
 	totalAmountWithVAT := totalAmount * 1.08
 	return totalAmountWithVAT
+}
+
+func parseDate(timestampStr, dateStr, fullDateStr string) time.Time {
+	layouts := []string{
+		"02/01/2006 15:04:05",
+		"02/01/2006",
+		"2006-01-02 15:04:05",
+		"2006-01-02",
+	}
+
+	for _, input := range []string{timestampStr, dateStr, fullDateStr} {
+		if input == "" {
+			continue
+		}
+		for _, layout := range layouts {
+			if t, err := time.Parse(layout, input); err == nil {
+				return t
+			}
+		}
+	}
+	return time.Time{}
 }

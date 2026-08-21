@@ -8,9 +8,9 @@ import (
 	"github.com/gamee1910/volt/internal/config"
 	"github.com/gamee1910/volt/internal/domain/repository"
 	"github.com/gamee1910/volt/internal/domain/service"
+	"github.com/gamee1910/volt/internal/infrastructure/client/evnhcm"
 	"github.com/gamee1910/volt/internal/infrastructure/persistences/postgres"
 	"github.com/gamee1910/volt/internal/interfaces/http/handler"
-	"github.com/gamee1910/volt/pkg/evnhcm"
 )
 
 type Container struct {

@@ -20,17 +20,10 @@ func NewElectricityRepository(db *sql.DB) repository.ElectricityRepository {
 	return &ElectricityRepository{db: db}
 }
 
-func (repository *ElectricityRepository) Insert(
-	ctx context.Context, req *entity.ElectricityConsumption,
-) error {
-	query := `
-		INSERT INTO electricity_consumption(reading_date, consumption_kwh, created_at)
-		VALUES ($1, $2, NOW())
-		ON CONFLICT (reading_date) DO UPDATE
-		SET consumption_kwh = EXCLUDED.consumption_kwh
-	`
+func (repository *ElectricityRepository) Insert(ctx context.Context, req *entity.ElectricityConsumption) error {
+	query := `INSERT INTO electricity_consumption(measurement_date, consumption_kwh, created_at) VALUES ($1, $2, NOW()) ON CONFLICT (measurement_date) DO NOTHING`
 
-	_, err := repository.db.ExecContext(ctx, query, req.ReadingDate, req.ConsumptionKWh)
+	_, err := repository.db.ExecContext(ctx, query, req.MeasurementDate, req.ConsumptionKWh)
 	if err != nil {
 		return fmt.Errorf("insert electricity consumption: %w", err)
 	}
@@ -41,12 +34,12 @@ func (repository *ElectricityRepository) Insert(
 func (repository *ElectricityRepository) FindByDate(
 	ctx context.Context, date time.Time,
 ) (*entity.ElectricityConsumption, error) {
-	query := `SELECT id, reading_date, consumption_kwh, created_at FROM electricity_consumption WHERE reading_date = $1`
+	query := `SELECT id, measurement_date, consumption_kwh, created_at FROM electricity_consumption WHERE measurement_date = $1`
 
 	var result entity.ElectricityConsumption
 
 	err := repository.db.QueryRowContext(ctx, query, date).Scan(
-		&result.ID, &result.ReadingDate, &result.ConsumptionKWh, &result.CreatedAt,
+		&result.ID, &result.MeasurementDate, &result.ConsumptionKWh, &result.CreatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -61,7 +54,7 @@ func (repository *ElectricityRepository) FindAll(
 	ctx context.Context,
 ) ([]*entity.ElectricityConsumption, error) {
 
-	query := `SELECT id, reading_date, consumption_kwh, created_at FROM electricity_consumption`
+	query := `SELECT id, measurement_date, consumption_kwh, created_at FROM electricity_consumption`
 
 	rows, err := repository.db.QueryContext(ctx, query)
 	if err != nil {
@@ -76,7 +69,7 @@ func (repository *ElectricityRepository) FindAll(
 
 		err := rows.Scan(
 			&consumption.ID,
-			&consumption.ReadingDate,
+			&consumption.MeasurementDate,
 			&consumption.ConsumptionKWh,
 			&consumption.CreatedAt,
 		)

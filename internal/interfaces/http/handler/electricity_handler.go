@@ -7,7 +7,6 @@ import (
 	"github.com/gamee1910/volt/internal/config"
 	"github.com/gamee1910/volt/internal/domain/service"
 	"github.com/gamee1910/volt/internal/interfaces/http/transport/request"
-	"github.com/gamee1910/volt/pkg/evnhcm"
 )
 
 type ElectricityHandler struct {
@@ -16,21 +15,15 @@ type ElectricityHandler struct {
 }
 
 func NewElectricityHandler(
-	electrictiService service.ElectricityService,
-	cfg *config.Configuration,
+	electrictiService service.ElectricityService, cfg *config.Configuration,
 ) *ElectricityHandler {
 	return &ElectricityHandler{
-		electricityService: electrictiService,
-		cfg:                cfg,
+		electricityService: electrictiService, cfg: cfg,
 	}
 }
 
 func (h *ElectricityHandler) Login(w http.ResponseWriter, r *http.Request) {
-	err := h.electricityService.LoginEVN(
-		r.Context(),
-		h.cfg.EnvConfig.Username,
-		h.cfg.EnvConfig.Password,
-	)
+	err := h.electricityService.LoginEVN(r.Context(), h.cfg.EnvConfig.Username, h.cfg.EnvConfig.Password)
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -49,11 +42,11 @@ func (h *ElectricityHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Header().Add("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	_, _ = w.Write(responseJSON)
 }
 
-func (h *ElectricityHandler) GetAll(w http.ResponseWriter, r *http.Request) {
+func (h *ElectricityHandler) SyncFromEVN(w http.ResponseWriter, r *http.Request) {
 	var req request.GetUsageRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -67,7 +60,7 @@ func (h *ElectricityHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	evnReq := evnhcm.DailyPowerUsageRequest{
+	evnReq := request.DailyPowerUsageRequest{
 		Token:        "",
 		CustomerCode: h.cfg.EnvConfig.CustomerCode,
 		FromDate:     req.FromDate,
@@ -84,4 +77,17 @@ func (h *ElectricityHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(result)
+}
+
+func (h *ElectricityHandler) GetAll(w http.ResponseWriter, r *http.Request) {
+	resp, err := h.electricityService.GetAll(r.Context())
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(err.Error()))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(resp)
 }
