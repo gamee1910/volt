@@ -12,8 +12,8 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/gamee1910/volt/internal/interfaces/http/transport/request"
-	"github.com/gamee1910/volt/internal/interfaces/http/transport/response"
+	"github.com/gamee1910/volt/internal/interfaces/http/payload/request"
+	"github.com/gamee1910/volt/internal/interfaces/http/payload/response"
 )
 
 const (
@@ -23,17 +23,26 @@ const (
 )
 
 type EVNClient struct {
-	httpClient *http.Client
-	baseURL    *url.URL
+	httpClient       *http.Client
+	baseURL          *url.URL
+	pathLogin        string
+	pathDienNangNgay string
 }
 
-func NewEVNClient(baseURL *url.URL) (*EVNClient, error) {
-	if baseURL == nil {
-		var err error
-		baseURL, err = url.Parse(defaultBaseURL)
-		if err != nil {
-			return nil, fmt.Errorf("parse default base url: %w", err)
-		}
+func NewEVNClient(rawBaseURL, rawPathLogin, rawPathDienNangNgay string) (*EVNClient, error) {
+	if rawBaseURL == "" {
+		rawBaseURL = defaultBaseURL
+	}
+	if rawPathLogin == "" {
+		rawPathLogin = pathLogin
+	}
+	if rawPathDienNangNgay == "" {
+		rawPathDienNangNgay = pathDienNangNgay
+	}
+
+	parsedBaseURL, err := url.Parse(rawBaseURL)
+	if err != nil {
+		return nil, fmt.Errorf("parse base url: %w", err)
 	}
 
 	jar, err := cookiejar.New(nil)
@@ -46,7 +55,9 @@ func NewEVNClient(baseURL *url.URL) (*EVNClient, error) {
 			Timeout: 20 * time.Second,
 			Jar:     jar,
 		},
-		baseURL: baseURL,
+		baseURL:          parsedBaseURL,
+		pathLogin:        rawPathLogin,
+		pathDienNangNgay: rawPathDienNangNgay,
 	}, nil
 }
 
@@ -58,7 +69,7 @@ func (c *EVNClient) Login(ctx context.Context, username, password string) error 
 		"token":    "",
 	}
 
-	_, err := c.postMultipart(ctx, pathLogin, fields)
+	_, err := c.postMultipart(ctx, c.pathLogin, fields)
 	if err != nil {
 		return fmt.Errorf("login EVNHCMC: %w", err)
 	}
@@ -74,7 +85,7 @@ func (c *EVNClient) GetDailyPowerUsageData(ctx context.Context, reqData request.
 		"token":         reqData.Token,
 	}
 
-	body, err := c.postMultipart(ctx, pathDienNangNgay, fields)
+	body, err := c.postMultipart(ctx, c.pathDienNangNgay, fields)
 	if err != nil {
 		return nil, fmt.Errorf("get daily power usage: %w", err)
 	}

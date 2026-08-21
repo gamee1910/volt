@@ -1,5 +1,8 @@
 export EVN_USERNAME=""
 export EVN_PASSWORD=""
+export EVN_BASE_URL=""
+export EVN_PATH_LOGIN=""
+export EVN_PATH_DIEN_NANG_NGAY=""
 
 export APP_NAME=""
 export APP_ENV=""

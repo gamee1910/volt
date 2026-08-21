@@ -9,8 +9,8 @@ import (
 	"github.com/gamee1910/volt/internal/domain/entity"
 	"github.com/gamee1910/volt/internal/domain/repository"
 	"github.com/gamee1910/volt/internal/domain/service"
-	"github.com/gamee1910/volt/internal/interfaces/http/transport/request"
-	"github.com/gamee1910/volt/internal/interfaces/http/transport/response"
+	"github.com/gamee1910/volt/internal/interfaces/http/payload/request"
+	"github.com/gamee1910/volt/internal/interfaces/http/payload/response"
 )
 
 type electricityService struct {
