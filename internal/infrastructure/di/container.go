@@ -5,18 +5,18 @@ import (
 	"fmt"
 
 	"github.com/gamee1910/volt/config"
-	"github.com/gamee1910/volt/internal/application"
-	"github.com/gamee1910/volt/internal/domain/repository"
+	service2 "github.com/gamee1910/volt/internal/application"
+	"github.com/gamee1910/volt/internal/domain/ports"
 	"github.com/gamee1910/volt/internal/domain/service"
-	"github.com/gamee1910/volt/internal/infrastructure/client/evnhcm"
+	"github.com/gamee1910/volt/internal/infrastructure/client"
 	"github.com/gamee1910/volt/internal/infrastructure/persistences/postgres"
-	"github.com/gamee1910/volt/internal/interfaces/restapi/handler"
+	"github.com/gamee1910/volt/internal/interfaces/api/handler"
 )
 
 type Container struct {
 	cfg                *config.Configuration
 	db                 *sql.DB
-	evnClient          *evnhcm.EVNClient
+	evnClient          *client.EVNClient
 	electricityHandler *handler.ElectricityHandler
 }
 
@@ -25,7 +25,7 @@ func (c *Container) ElectricityHandler() *handler.ElectricityHandler {
 }
 
 func NewContainer(cfg *config.Configuration, db *sql.DB) (*Container, error) {
-	evnClient, err := evnhcm.NewEVNClient(
+	evnClient, err := client.NewEVNClient(
 		cfg.ApplicationConfig.EnvConfig.BaseURL,
 		cfg.ApplicationConfig.EnvConfig.LoginAPI,
 		cfg.ApplicationConfig.EnvConfig.ElectricityConsumptionAPI,
@@ -51,7 +51,7 @@ func (c *Container) initializerHandler() {
 }
 
 type repositories struct {
-	electricityRepository repository.ElectricityRepository
+	electricityRepository ports.ElectricityRepository
 }
 
 func (c *Container) initRepositories() repositories {
@@ -66,6 +66,6 @@ type services struct {
 
 func (c *Container) initServices(r repositories) services {
 	return services{
-		electricityService: application.NewElectricityService(r.electricityRepository, c.evnClient),
+		electricityService: service2.NewElectricityService(r.electricityRepository, c.evnClient),
 	}
 }

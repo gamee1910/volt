@@ -1,4 +1,4 @@
-package evnhcm
+package client
 
 import (
 	"bytes"
@@ -12,25 +12,25 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/gamee1910/volt/internal/interfaces/restapi/handler/request"
-	"github.com/gamee1910/volt/internal/interfaces/restapi/handler/response"
+	"github.com/gamee1910/volt/internal/interfaces/api/handler/request"
+	"github.com/gamee1910/volt/internal/interfaces/api/handler/response"
 )
 
 type EVNClient struct {
-	httpClient       *http.Client
-	baseURL          *url.URL
-	pathLogin        string
-	pathDienNangNgay string
+	httpClient                *http.Client
+	baseURL                   *url.URL
+	loginAPI                  string
+	electricityConsumptionAPI string
 }
 
-func NewEVNClient(rawBaseURL, rawPathLogin, rawPathDienNangNgay string) (*EVNClient, error) {
+func NewEVNClient(rawBaseURL, rawLoginAPIPath, rawElectricityConsumptionAPIPath string) (*EVNClient, error) {
 	if rawBaseURL == "" {
 		return nil, fmt.Errorf("EVN_BASE_URL is required")
 	}
-	if rawPathLogin == "" {
+	if rawLoginAPIPath == "" {
 		return nil, fmt.Errorf("EVN_PATH_LOGIN is required")
 	}
-	if rawPathDienNangNgay == "" {
+	if rawElectricityConsumptionAPIPath == "" {
 		return nil, fmt.Errorf("EVN_PATH_DIEN_NANG_NGAY is required")
 	}
 
@@ -49,9 +49,9 @@ func NewEVNClient(rawBaseURL, rawPathLogin, rawPathDienNangNgay string) (*EVNCli
 			Timeout: 20 * time.Second,
 			Jar:     jar,
 		},
-		baseURL:          parsedBaseURL,
-		pathLogin:        rawPathLogin,
-		pathDienNangNgay: rawPathDienNangNgay,
+		baseURL:                   parsedBaseURL,
+		loginAPI:                  rawLoginAPIPath,
+		electricityConsumptionAPI: rawElectricityConsumptionAPIPath,
 	}, nil
 }
 
@@ -63,7 +63,7 @@ func (c *EVNClient) Login(ctx context.Context, username, password string) error 
 		"token":    "",
 	}
 
-	_, err := c.postMultipart(ctx, c.pathLogin, fields)
+	_, err := c.postMultipart(ctx, c.loginAPI, fields)
 	if err != nil {
 		return fmt.Errorf("login EVNHCMC: %w", err)
 	}
@@ -71,7 +71,9 @@ func (c *EVNClient) Login(ctx context.Context, username, password string) error 
 	return nil
 }
 
-func (c *EVNClient) GetDailyPowerUsageData(ctx context.Context, reqData request.DailyPowerUsageRequest) (*response.DailyPowerUsageResponse, error) {
+func (c *EVNClient) GetDailyPowerUsageData(
+	ctx context.Context, reqData request.DailyPowerUsageRequest,
+) (*response.DailyPowerUsageResponse, error) {
 	fields := map[string]string{
 		"input_makh":    reqData.CustomerCode,
 		"input_tungay":  reqData.FromDate,
@@ -79,7 +81,7 @@ func (c *EVNClient) GetDailyPowerUsageData(ctx context.Context, reqData request.
 		"token":         reqData.Token,
 	}
 
-	body, err := c.postMultipart(ctx, c.pathDienNangNgay, fields)
+	body, err := c.postMultipart(ctx, c.electricityConsumptionAPI, fields)
 	if err != nil {
 		return nil, fmt.Errorf("get daily power usage: %w", err)
 	}
@@ -92,7 +94,9 @@ func (c *EVNClient) GetDailyPowerUsageData(ctx context.Context, reqData request.
 	return &result, nil
 }
 
-func (c *EVNClient) postMultipart(ctx context.Context, endpointPath string, fields map[string]string) ([]byte, error) {
+func (c *EVNClient) postMultipart(
+	ctx context.Context, endpointPath string, fields map[string]string,
+) ([]byte, error) {
 	targetURL := c.baseURL.ResolveReference(&url.URL{Path: endpointPath}).String()
 
 	var buf bytes.Buffer

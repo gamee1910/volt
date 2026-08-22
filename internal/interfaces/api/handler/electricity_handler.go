@@ -6,7 +6,7 @@ import (
 
 	"github.com/gamee1910/volt/config"
 	"github.com/gamee1910/volt/internal/domain/service"
-	"github.com/gamee1910/volt/internal/interfaces/restapi/handler/request"
+	"github.com/gamee1910/volt/internal/interfaces/api/handler/request"
 )
 
 type ElectricityHandler struct {

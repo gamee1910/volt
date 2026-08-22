@@ -12,7 +12,7 @@ import (
 
 	"github.com/gamee1910/volt/config"
 	"github.com/gamee1910/volt/internal/infrastructure/di"
-	"github.com/gamee1910/volt/internal/interfaces/restapi/routes"
+	"github.com/gamee1910/volt/internal/interfaces/api/routes"
 	"github.com/gamee1910/volt/pkg/logger"
 )
 

@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 
-	"github.com/gamee1910/volt/internal/interfaces/restapi/handler/request"
-	"github.com/gamee1910/volt/internal/interfaces/restapi/handler/response"
+	"github.com/gamee1910/volt/internal/interfaces/api/handler/request"
+	"github.com/gamee1910/volt/internal/interfaces/api/handler/response"
 )
 
 type ElectricityService interface {
