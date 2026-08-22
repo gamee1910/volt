@@ -25,9 +25,11 @@ func SetupRouter(db *sql.DB, container *di.Container) http.Handler {
 		_, _ = w.Write([]byte("OK"))
 	})
 
-	router.Post("/login", container.ElectricityHandler().Login)
-	router.Post("/sync", container.ElectricityHandler().SyncFromEVN)
-	router.Get("/", container.ElectricityHandler().GetAll)
+	router.Route("/api/v1", func(r chi.Router) {
+		router.Post("/login", container.ElectricityHandler().Login)
+		router.Post("/sync", container.ElectricityHandler().SyncFromEVN)
+		router.Get("/", container.ElectricityHandler().GetAll)
+	})
 
 	return router
 }

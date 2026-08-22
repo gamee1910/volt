@@ -32,12 +32,12 @@ type TLSServerConfig struct {
 	KeyFile  string
 }
 type EvnConfig struct {
-	Username         string
-	Password         string
-	CustomerCode     string
-	BaseURL          string
-	PathLogin        string
-	PathDienNangNgay string
+	Username                  string
+	Password                  string
+	CustomerCode              string
+	BaseURL                   string
+	LoginAPI                  string
+	ElectricityConsumptionAPI string
 }
 
 type DatabaseConfig struct {
@@ -56,12 +56,12 @@ type DatabaseConfig struct {
 func Load() *Configuration {
 	return &Configuration{
 		EnvConfig: EvnConfig{
-			Username:         GetEnv("EVN_USERNAME", ""),
-			Password:         GetEnv("EVN_PASSWORD", ""),
-			CustomerCode:     GetEnv("EVN_CUSTOMER", ""),
-			BaseURL:          GetEnv("EVN_BASE_URL", ""),
-			PathLogin:        GetEnv("EVN_LOGIN_API", ""),
-			PathDienNangNgay: GetEnv("EVN_ELECTRICITY_CONSUMPTION_API", ""),
+			Username:                  GetEnv("EVN_USERNAME", ""),
+			Password:                  GetEnv("EVN_PASSWORD", ""),
+			CustomerCode:              GetEnv("EVN_CUSTOMER", ""),
+			BaseURL:                   GetEnv("EVN_BASE_URL", ""),
+			LoginAPI:                  GetEnv("EVN_LOGIN_API", ""),
+			ElectricityConsumptionAPI: GetEnv("EVN_ELECTRICITY_CONSUMPTION_API", ""),
 		},
 		ApplicationConfig: ApplicationConfig{
 			Name: GetEnv("APP_NAME", "social"),

@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/gamee1910/volt/internal/config"
+	"github.com/gamee1910/volt/config"
 	"github.com/gamee1910/volt/internal/domain/service"
-	"github.com/gamee1910/volt/internal/interfaces/http/payload/request"
+	"github.com/gamee1910/volt/internal/interfaces/restapi/handler/request"
 )
 
 type ElectricityHandler struct {

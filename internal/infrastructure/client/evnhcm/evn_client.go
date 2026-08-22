@@ -12,8 +12,8 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/gamee1910/volt/internal/interfaces/http/payload/request"
-	"github.com/gamee1910/volt/internal/interfaces/http/payload/response"
+	"github.com/gamee1910/volt/internal/interfaces/restapi/handler/request"
+	"github.com/gamee1910/volt/internal/interfaces/restapi/handler/response"
 )
 
 type EVNClient struct {

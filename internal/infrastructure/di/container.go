@@ -4,13 +4,13 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/gamee1910/volt/config"
 	"github.com/gamee1910/volt/internal/application"
-	"github.com/gamee1910/volt/internal/config"
 	"github.com/gamee1910/volt/internal/domain/repository"
 	"github.com/gamee1910/volt/internal/domain/service"
 	"github.com/gamee1910/volt/internal/infrastructure/client/evnhcm"
 	"github.com/gamee1910/volt/internal/infrastructure/persistences/postgres"
-	"github.com/gamee1910/volt/internal/interfaces/http/handler"
+	"github.com/gamee1910/volt/internal/interfaces/restapi/handler"
 )
 
 type Container struct {
@@ -27,8 +27,8 @@ func (c *Container) ElectricityHandler() *handler.ElectricityHandler {
 func NewContainer(cfg *config.Configuration, db *sql.DB) (*Container, error) {
 	evnClient, err := evnhcm.NewEVNClient(
 		cfg.EnvConfig.BaseURL,
-		cfg.EnvConfig.PathLogin,
-		cfg.EnvConfig.PathDienNangNgay,
+		cfg.EnvConfig.LoginAPI,
+		cfg.EnvConfig.ElectricityConsumptionAPI,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create EVN client: %w", err)

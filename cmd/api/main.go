@@ -10,9 +10,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gamee1910/volt/internal/config"
+	"github.com/gamee1910/volt/config"
 	"github.com/gamee1910/volt/internal/infrastructure/di"
-	"github.com/gamee1910/volt/internal/interfaces/http/routes"
 	"github.com/gamee1910/volt/pkg/logger"
 )
 
@@ -31,7 +30,7 @@ func main() {
 		log.Fatal("failed to initialize container", "error", err)
 	}
 
-	router := routes.SetupRouter(databaseConnection, container)
+	router := http.SetupRouter(databaseConnection, container)
 
 	server := &http.Server{
 		Addr:         ":" + cfg.ServerConfig.Port,

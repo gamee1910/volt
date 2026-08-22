@@ -7,12 +7,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gamee1910/volt/internal/interfaces/restapi/handler/request"
+	"github.com/gamee1910/volt/internal/interfaces/restapi/handler/response"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/gamee1910/volt/internal/domain/entity"
-	"github.com/gamee1910/volt/internal/interfaces/http/payload/request"
-	"github.com/gamee1910/volt/internal/interfaces/http/payload/response"
 )
 
 type mockEVNClient struct {
