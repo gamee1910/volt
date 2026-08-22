@@ -8,15 +8,16 @@ import (
 )
 
 type Configuration struct {
-	EnvConfig         EvnConfig
+	ApplicationConfig ApplicationConfig
 	DatabaseConfig    DatabaseConfig
 	ServerConfig      ServerConfig
-	ApplicationConfig ApplicationConfig
 }
 
 type ApplicationConfig struct {
-	Name string
-	Env  string
+	Name           string
+	Env            string
+	EnvConfig      EvnConfig
+	TelegramConfig TelegramConfig
 }
 
 type ServerConfig struct {
@@ -40,6 +41,10 @@ type EvnConfig struct {
 	ElectricityConsumptionAPI string
 }
 
+type TelegramConfig struct {
+	TelegramAPIKey string
+}
+
 type DatabaseConfig struct {
 	Host         string
 	Port         string
@@ -55,17 +60,20 @@ type DatabaseConfig struct {
 
 func Load() *Configuration {
 	return &Configuration{
-		EnvConfig: EvnConfig{
-			Username:                  GetEnv("EVN_USERNAME", ""),
-			Password:                  GetEnv("EVN_PASSWORD", ""),
-			CustomerCode:              GetEnv("EVN_CUSTOMER", ""),
-			BaseURL:                   GetEnv("EVN_BASE_URL", ""),
-			LoginAPI:                  GetEnv("EVN_LOGIN_API", ""),
-			ElectricityConsumptionAPI: GetEnv("EVN_ELECTRICITY_CONSUMPTION_API", ""),
-		},
 		ApplicationConfig: ApplicationConfig{
 			Name: GetEnv("APP_NAME", "social"),
 			Env:  GetEnv("APP_ENV", "development"),
+			EnvConfig: EvnConfig{
+				Username:                  GetEnv("EVN_USERNAME", ""),
+				Password:                  GetEnv("EVN_PASSWORD", ""),
+				CustomerCode:              GetEnv("EVN_CUSTOMER", ""),
+				BaseURL:                   GetEnv("EVN_BASE_URL", ""),
+				LoginAPI:                  GetEnv("EVN_LOGIN_API", ""),
+				ElectricityConsumptionAPI: GetEnv("EVN_ELECTRICITY_CONSUMPTION_API", ""),
+			},
+			TelegramConfig: TelegramConfig{
+				TelegramAPIKey: GetEnv("TELEGRAM_API_KEY", ""),
+			},
 		},
 		DatabaseConfig: DatabaseConfig{
 			Host:               GetEnv("DB_HOST", "localhost"),

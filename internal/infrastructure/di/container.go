@@ -26,9 +26,9 @@ func (c *Container) ElectricityHandler() *handler.ElectricityHandler {
 
 func NewContainer(cfg *config.Configuration, db *sql.DB) (*Container, error) {
 	evnClient, err := evnhcm.NewEVNClient(
-		cfg.EnvConfig.BaseURL,
-		cfg.EnvConfig.LoginAPI,
-		cfg.EnvConfig.ElectricityConsumptionAPI,
+		cfg.ApplicationConfig.EnvConfig.BaseURL,
+		cfg.ApplicationConfig.EnvConfig.LoginAPI,
+		cfg.ApplicationConfig.EnvConfig.ElectricityConsumptionAPI,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create EVN client: %w", err)

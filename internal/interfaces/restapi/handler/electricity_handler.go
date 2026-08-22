@@ -23,7 +23,11 @@ func NewElectricityHandler(
 }
 
 func (h *ElectricityHandler) Login(w http.ResponseWriter, r *http.Request) {
-	err := h.electricityService.LoginEVN(r.Context(), h.cfg.EnvConfig.Username, h.cfg.EnvConfig.Password)
+	err := h.electricityService.LoginEVN(
+		r.Context(),
+		h.cfg.ApplicationConfig.EnvConfig.Username,
+		h.cfg.ApplicationConfig.EnvConfig.Password,
+	)
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -52,7 +56,7 @@ func (h *ElectricityHandler) SyncFromEVN(w http.ResponseWriter, r *http.Request)
 
 	evnReq := request.DailyPowerUsageRequest{
 		Token:        "",
-		CustomerCode: h.cfg.EnvConfig.CustomerCode,
+		CustomerCode: h.cfg.ApplicationConfig.EnvConfig.CustomerCode,
 		FromDate:     req.FromDate,
 		ToDate:       req.ToDate,
 	}
