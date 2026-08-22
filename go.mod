@@ -7,6 +7,7 @@ require (
 	github.com/lib/pq v1.12.3
 	github.com/stretchr/testify v1.8.1
 	go.uber.org/zap v1.28.0
+	golang.org/x/text v0.41.0
 )
 
 require (

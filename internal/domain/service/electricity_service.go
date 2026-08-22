@@ -9,6 +9,7 @@ import (
 
 type ElectricityService interface {
 	LoginEVN(ctx context.Context, username, password string) error
-	FetchAndSyncMonthlyUsage(ctx context.Context, req request.DailyPowerUsageRequest) (*response.MonthlyElectricityResponse, error)
-	GetAll(ctx context.Context) (*response.MonthlyElectricityResponse, error)
+	FetchAndSyncMonthlyUsage(ctx context.Context, req request.DailyPowerUsageRequest) error
+	GetAll(ctx context.Context) (*response.ElectricityResponse, error)
+	GetYesterDayUsage(ctx context.Context) (*response.ElectricityConsumptionResponse, error)
 }

@@ -31,19 +31,9 @@ func (h *ElectricityHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := map[string]interface{}{
-		"message": "Login successful",
-	}
-	responseJSON, err := json.Marshal(response)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(err.Error()))
-		return
-	}
-
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
-	_, _ = w.Write(responseJSON)
+	_, _ = w.Write([]byte(`{"message": "Login successful"}`))
 }
 
 func (h *ElectricityHandler) SyncFromEVN(w http.ResponseWriter, r *http.Request) {
@@ -67,7 +57,7 @@ func (h *ElectricityHandler) SyncFromEVN(w http.ResponseWriter, r *http.Request)
 		ToDate:       req.ToDate,
 	}
 
-	result, err := h.electricityService.FetchAndSyncMonthlyUsage(r.Context(), evnReq)
+	err := h.electricityService.FetchAndSyncMonthlyUsage(r.Context(), evnReq)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, _ = w.Write([]byte(err.Error()))
@@ -76,7 +66,7 @@ func (h *ElectricityHandler) SyncFromEVN(w http.ResponseWriter, r *http.Request)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(result)
+	_, _ = w.Write([]byte(`{"message": "Sync successful"}`))
 }
 
 func (h *ElectricityHandler) GetAll(w http.ResponseWriter, r *http.Request) {
@@ -90,4 +80,17 @@ func (h *ElectricityHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(resp)
+}
+
+func (h *ElectricityHandler) GetYesterdayUsage(w http.ResponseWriter, r *http.Request) {
+	response, err := h.electricityService.GetYesterDayUsage(r.Context())
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(err.Error()))
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(response)
 }
