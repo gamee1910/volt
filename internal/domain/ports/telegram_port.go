@@ -2,11 +2,9 @@ package ports
 
 import (
 	"context"
-
-	"github.com/go-telegram/bot"
-	"github.com/go-telegram/bot/models"
 )
 
 type TelegramClient interface {
-	SendMessage(ctx context.Context, b *bot.Bot, update *models.Update)
+	Start(ctx context.Context) error
+	SendMessage(ctx context.Context, chatID int64, text string) error
 }

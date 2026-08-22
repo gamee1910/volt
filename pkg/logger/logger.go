@@ -1,15 +1,8 @@
 package logger
 
 import (
-	"sync"
-
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-)
-
-var (
-	globalLogger *Logger
-	once         sync.Once
 )
 
 type Logger struct {
@@ -25,15 +18,16 @@ func NewLogger(env string) *Logger {
 		cfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	} else {
 		cfg = zap.NewDevelopmentConfig()
+
 		cfg.Encoding = "console"
+		cfg.DisableCaller = true
 		cfg.DisableStacktrace = true
 
-		cfg.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout("02/01/2006 15:04:05")
+		cfg.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout("15:04:05")
 		cfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-		cfg.EncoderConfig.EncodeCaller = zapcore.ShortCallerEncoder
 	}
 
-	logger, err := cfg.Build(zap.AddCallerSkip(1))
+	logger, err := cfg.Build()
 	if err != nil {
 		panic(err)
 	}
@@ -43,39 +37,14 @@ func NewLogger(env string) *Logger {
 	}
 }
 
-func Init(env string) *Logger {
-	once.Do(func() {
-		globalLogger = NewLogger(env)
-	})
-	return globalLogger
+func (l *Logger) Info(msg string, keysAndValues ...any) {
+	l.Infow(msg, keysAndValues...)
 }
 
-func L() *Logger {
-	if globalLogger == nil {
-		Init("development")
-	}
-	return globalLogger
+func (l *Logger) Error(msg string, keysAndValues ...any) {
+	l.Errorw(msg, keysAndValues...)
 }
 
-func Info(msg string, keysAndValues ...any) {
-	L().Infow(msg, keysAndValues...)
-}
-
-func Error(msg string, keysAndValues ...any) {
-	L().Errorw(msg, keysAndValues...)
-}
-
-func Infof(format string, args ...any) {
-	L().SugaredLogger.Infof(format, args...)
-}
-
-func Fatal(args ...any) {
-	L().SugaredLogger.Fatal(args...)
-}
-
-func Sync() error {
-	if globalLogger != nil {
-		return globalLogger.Sync()
-	}
-	return nil
+func (l *Logger) Infof(format string, args ...any) {
+	l.SugaredLogger.Infof(format, args...)
 }

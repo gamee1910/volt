@@ -18,7 +18,7 @@ import (
 
 func main() {
 	cfg := config.Load()
-	log := logger.Init(cfg.ApplicationConfig.Env)
+	log := logger.NewLogger(cfg.ApplicationConfig.Env)
 
 	databaseConnection, err := config.DatabaseConnection(cfg)
 	if err != nil {
@@ -26,7 +26,7 @@ func main() {
 	}
 	defer closeDB(databaseConnection, log)
 
-	container, err := di.NewContainer(cfg, databaseConnection)
+	container, err := di.NewContainer(cfg, databaseConnection, log)
 	if err != nil {
 		log.Fatal("failed to initialize container", "error", err)
 	}
@@ -39,6 +39,15 @@ func main() {
 		ReadTimeout:  cfg.ServerConfig.ReadTimeout,
 		WriteTimeout: cfg.ServerConfig.WriteTimeout,
 		IdleTimeout:  time.Minute,
+	}
+
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancel()
+
+	if err := container.TelegramClient().Start(ctx); err != nil {
+		log.Fatal("telegram_bot_failed", map[string]interface{}{
+			"error": err.Error(),
+		})
 	}
 
 	go func() {
