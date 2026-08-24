@@ -124,11 +124,11 @@ sequenceDiagram
     export DB_NAME="volt"
     ```
 
-    > [!NOTE]
-    > `EVN_BASE_URL`, `EVN_LOGIN_API`, and `EVN_ELECTRICITY_CONSUMPTION_API` are required for EVNHCMC API integration.
-    >
-    > - **Contact**: Please reach out to the maintainer if you need assistance regarding API endpoints.
-    >   - **Disclaimer**: The maintainer assumes no responsibility or liability for any misuse, service disruption, or non-compliance.
+> [!NOTE]
+> `EVN_BASE_URL`, `EVN_LOGIN_API`, and `EVN_ELECTRICITY_CONSUMPTION_API` are required for EVNHCMC API integration.
+>
+> - **Contact**: Please reach out to the maintainer if you need assistance regarding API endpoints.
+>   - **Disclaimer**: The maintainer assumes no responsibility or liability for any misuse, service disruption, or non-compliance.
 
 3. Allow `direnv` to load variables automatically:
 
