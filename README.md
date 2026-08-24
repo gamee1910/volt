@@ -35,6 +35,44 @@ Volt is a Go-based backend application designed to collect electricity consumpti
                             Telegram Bot
 ```
 
+### Data Sync Flow (Cron Job — every 12h)
+
+The application runs an **in-process cron job** (`0 */12 * * *`) powered by `robfig/cron`. On each trigger (and immediately on startup), it executes the following sequence:
+
+```mermaid
+sequenceDiagram
+    participant Main as cmd/api/main.go
+    participant Container as di.Container
+    participant Scheduler as EVNSyncScheduler
+    participant SyncJob as application.SyncJob
+    participant EVNClient as EVNClient (HTTP)
+    participant DB as Supabase PostgreSQL
+
+    Main->>Container: NewContainer(cfg, db, log)
+    Container->>SyncJob: NewSyncJob(cfg, svc, log)
+    Container->>Scheduler: NewEVNSyncScheduler(job, log)
+
+    Main->>Scheduler: Start(job)
+    Note over Scheduler: go job.Run() ← ngay lần đầu
+    Note over Scheduler: cron.Start() ← "0 */12 * * *"
+
+    SyncJob->>EVNClient: Login(user, pass)
+    SyncJob->>EVNClient: GetDailyPowerUsageData(từ ngày 1 tháng → hôm nay)
+    SyncJob->>DB: Upsert(consumption records)
+
+    loop Lúc 0h và 12h mỗi ngày
+        Scheduler->>SyncJob: Run()
+        SyncJob->>EVNClient: Login + Fetch
+        SyncJob->>DB: Upsert
+    end
+
+    Note over Main: SIGINT/SIGTERM (Railway restart/deploy)
+    Main->>Scheduler: Stop()
+    Note over Scheduler: Chờ job hiện tại xong rồi mới dừng
+```
+
+---
+
 ### Tech Stack & Features
 
 | Component       | Technology                                                  | Description                                                 |
