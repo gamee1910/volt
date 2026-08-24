@@ -7,14 +7,14 @@ import (
 	"time"
 
 	"github.com/gamee1910/volt/internal/domain/entity"
-	"github.com/gamee1910/volt/internal/domain/repositories"
+	"github.com/gamee1910/volt/internal/domain/repository"
 )
 
 type ElectricityRepository struct {
 	db *sql.DB
 }
 
-func NewElectricityRepository(db *sql.DB) repositories.ElectricityRepository {
+func NewElectricityRepository(db *sql.DB) repository.ElectricityRepository {
 	return &ElectricityRepository{db: db}
 }
 

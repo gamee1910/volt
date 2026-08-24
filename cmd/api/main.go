@@ -45,7 +45,7 @@ func main() {
 	defer cancel()
 
 	if err := container.TelegramClient().Start(ctx); err != nil {
-		log.Fatal("telegram_bot_failed", map[string]interface{}{
+		log.Fatal("telegram_bot_failed", map[string]any{
 			"error": err.Error(),
 		})
 	}

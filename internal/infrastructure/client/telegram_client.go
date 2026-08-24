@@ -10,6 +10,8 @@ import (
 	"github.com/go-telegram/bot/models"
 )
 
+type MessageHandler func(ctx context.Context, chatID int64, text string)
+
 type TelegramClient struct {
 	bot *bot.Bot
 	log *logger.Logger
@@ -18,10 +20,17 @@ type TelegramClient struct {
 func NewTelegramClient(
 	apiKey string,
 	log *logger.Logger,
-	defaultHandler func(ctx context.Context, b *bot.Bot, update *models.Update),
+	onMessage MessageHandler,
 ) (port.TelegramClient, error) {
+	botHandler := func(ctx context.Context, b *bot.Bot, update *models.Update) {
+		if update.Message == nil {
+			return
+		}
+		onMessage(ctx, update.Message.Chat.ID, update.Message.Text)
+	}
+
 	opts := []bot.Option{
-		bot.WithDefaultHandler(defaultHandler),
+		bot.WithDefaultHandler(botHandler),
 	}
 
 	b, err := bot.New(apiKey, opts...)

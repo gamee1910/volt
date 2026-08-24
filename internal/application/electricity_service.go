@@ -9,7 +9,7 @@ import (
 	"github.com/gamee1910/volt/internal/application/dto"
 	"github.com/gamee1910/volt/internal/application/port"
 	"github.com/gamee1910/volt/internal/domain/entity"
-	"github.com/gamee1910/volt/internal/domain/repositories"
+	"github.com/gamee1910/volt/internal/domain/repository"
 	"github.com/gamee1910/volt/internal/domain/service"
 	"github.com/gamee1910/volt/internal/interfaces/api/handler/response"
 )
@@ -21,12 +21,12 @@ const (
 )
 
 type electricityService struct {
-	electricityRepository repositories.ElectricityRepository
+	electricityRepository repository.ElectricityRepository
 	evnClient             port.EVNClient
 }
 
 func NewElectricityService(
-	electricityRepository repositories.ElectricityRepository,
+	electricityRepository repository.ElectricityRepository,
 	evnClient port.EVNClient,
 ) service.ElectricityService {
 	return &electricityService{
