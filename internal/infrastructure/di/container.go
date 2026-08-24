@@ -3,90 +3,95 @@ package di
 import (
 	"database/sql"
 	"fmt"
-	"net/http"
 
 	"github.com/gamee1910/volt/config"
 	"github.com/gamee1910/volt/internal/application"
-	"github.com/gamee1910/volt/internal/application/port"
 	"github.com/gamee1910/volt/internal/domain/repository"
 	"github.com/gamee1910/volt/internal/domain/service"
-	"github.com/gamee1910/volt/internal/infrastructure/client"
 	"github.com/gamee1910/volt/internal/infrastructure/persistences/postgres"
 	"github.com/gamee1910/volt/internal/interfaces/api/handler"
 	"github.com/gamee1910/volt/internal/interfaces/bot/command"
-	"github.com/gamee1910/volt/internal/interfaces/bot/router"
+	"github.com/gamee1910/volt/internal/interfaces/bot/routes"
+	"github.com/gamee1910/volt/pkg/evnhcmc"
 	"github.com/gamee1910/volt/pkg/logger"
-	"go.uber.org/zap"
+	"github.com/gamee1910/volt/pkg/telegram"
 )
 
 type Container struct {
-	cfg *config.Configuration
-	db  *sql.DB
-	log *logger.Logger
-	//Client
-	evnClient      *client.EVNClient
-	telegramClient port.TelegramClient
+	configuration *config.Configuration
+	database      *sql.DB
+	logger        *logger.Logger
 
-	//Handler
+	// Clients
+	telegramClient telegram.TelegramClient
+	evnClient      evnhcmc.EVNClient
+
+	// Handler
 	electricityHandler *handler.ElectricityHandler
+
+	// Command
+	electricityCommand *command.ElectricityCommand
+
+	// Bot
+	botRouter *routes.Router
 }
 
 func (c *Container) ElectricityHandler() *handler.ElectricityHandler {
 	return c.electricityHandler
 }
 
-func (c *Container) TelegramClient() port.TelegramClient {
-	return c.telegramClient
+func (c *Container) BotRouter() *routes.Router {
+	return c.botRouter
 }
 
-func (c *Container) HTTPServer() *http.Server {
-	return c.HTTPServer()
-}
-
-func NewContainer(cfg *config.Configuration, db *sql.DB, log *logger.Logger) (*Container, error) {
-	evnClient, err := client.NewEVNClient(
-		cfg.ApplicationConfig.EnvConfig.BaseURL,
-		cfg.ApplicationConfig.EnvConfig.LoginAPI,
-		cfg.ApplicationConfig.EnvConfig.ElectricityConsumptionAPI,
-	)
+func NewContainer(
+	cfg *config.Configuration,
+	db *sql.DB,
+	log *logger.Logger,
+) (*Container, error) {
+	client, err := initClients(cfg, log)
 	if err != nil {
-		log.Fatal("failed to create evn client", zap.Error(err))
-		return nil, fmt.Errorf("failed to create EVN client: %w", err)
+		return nil, err
 	}
 
-	c := &Container{
-		cfg:       cfg,
-		db:        db,
-		log:       log,
-		evnClient: evnClient,
+	container := &Container{
+		configuration: cfg,
+		database:      db,
+		logger:        log,
+
+		telegramClient: client.telegramClient,
+		evnClient:      client.evnClient,
 	}
 
-	c.initializerHandler()
-	return c, nil
+	container.initializerHandler()
+	return container, nil
 }
 
 func (c *Container) initializerHandler() {
 	repositories := c.initRepositories()
 	services := c.initServices(repositories)
 
-	electricityCommand := command.NewElectricityCommand(c.cfg, c.log, nil, services.electricityService)
-
-	botRouter := router.NewRouter(c.log, nil, electricityCommand)
-
-	telegramClient, err := client.NewTelegramClient(
-		c.cfg.ApplicationConfig.TelegramConfig.TelegramAPIKey,
-		c.log,
-		botRouter.DefaultHandler(),
+	c.electricityHandler = handler.NewElectricityHandler(
+		services.electricityService,
+		c.configuration,
 	)
-	if err != nil {
-		c.log.Fatalf("failed to create Telegram client: %v", err)
-	}
 
-	electricityCommand.SetSender(telegramClient)
-	botRouter.SetSender(telegramClient)
+	c.electricityCommand = command.NewElectricityCommand(
+		c.configuration,
+		c.logger,
+		c.telegramClient,
+		services.electricityService,
+	)
 
-	c.telegramClient = telegramClient
-	c.electricityHandler = handler.NewElectricityHandler(services.electricityService, c.cfg)
+	c.botRouter = routes.NewRouter(
+		c.logger,
+		c.telegramClient,
+		c.electricityCommand,
+	)
+
+	c.telegramClient.SetMessageHandler(
+		c.botRouter.DefaultHandler(),
+	)
 }
 
 type repositories struct {
@@ -95,7 +100,7 @@ type repositories struct {
 
 func (c *Container) initRepositories() repositories {
 	return repositories{
-		electricityRepository: postgres.NewElectricityRepository(c.db),
+		electricityRepository: postgres.NewElectricityRepository(c.database),
 	}
 }
 
@@ -107,4 +112,47 @@ func (c *Container) initServices(r repositories) services {
 	return services{
 		electricityService: application.NewElectricityService(r.electricityRepository, c.evnClient),
 	}
+}
+
+type clients struct {
+	telegramClient telegram.TelegramClient
+	evnClient      evnhcmc.EVNClient
+}
+
+func initClients(cfg *config.Configuration, log *logger.Logger) (clients, error) {
+	telegramClient, err := telegram.NewTelegramClient(
+		cfg.ApplicationConfig.TelegramConfig.TelegramAPIKey,
+		log,
+	)
+	if err != nil {
+		return clients{}, fmt.Errorf(
+			"failed to initialize telegram client: %w",
+			err,
+		)
+	}
+
+	evnClient, err := evnhcmc.NewEVNClient(
+		cfg.ApplicationConfig.EVNHCMCConfig.BaseURL,
+		cfg.ApplicationConfig.EVNHCMCConfig.LoginAPI,
+		cfg.ApplicationConfig.EVNHCMCConfig.ElectricityConsumptionAPI,
+	)
+	if err != nil {
+		return clients{}, fmt.Errorf(
+			"failed to initialize evn client: %w",
+			err,
+		)
+	}
+
+	return clients{
+		telegramClient: telegramClient,
+		evnClient:      evnClient,
+	}, nil
+}
+
+func (c *Container) TelegramClient() telegram.TelegramClient {
+	return c.telegramClient
+}
+
+func (c *Container) EVNClient() evnhcmc.EVNClient {
+	return c.evnClient
 }

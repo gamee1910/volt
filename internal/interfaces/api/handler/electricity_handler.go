@@ -4,9 +4,9 @@ import (
 	"net/http"
 
 	"github.com/gamee1910/volt/config"
-	"github.com/gamee1910/volt/internal/application/dto"
 	"github.com/gamee1910/volt/internal/domain/service"
 	"github.com/gamee1910/volt/internal/interfaces/api/handler/request"
+	"github.com/gamee1910/volt/pkg/evnhcmc"
 	pkgjson "github.com/gamee1910/volt/pkg/json"
 )
 
@@ -26,8 +26,8 @@ func NewElectricityHandler(
 func (h *ElectricityHandler) Login(w http.ResponseWriter, r *http.Request) {
 	err := h.electricityService.LoginEVN(
 		r.Context(),
-		h.cfg.ApplicationConfig.EnvConfig.Username,
-		h.cfg.ApplicationConfig.EnvConfig.Password,
+		h.cfg.ApplicationConfig.EVNHCMCConfig.Username,
+		h.cfg.ApplicationConfig.EVNHCMCConfig.Password,
 	)
 
 	if err != nil {
@@ -51,9 +51,9 @@ func (h *ElectricityHandler) SyncFromEVN(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	evnReq := dto.DailyPowerUsageRequest{
+	evnReq := evnhcmc.DailyPowerUsageRequest{
 		Token:        "",
-		CustomerCode: h.cfg.ApplicationConfig.EnvConfig.CustomerCode,
+		CustomerCode: h.cfg.ApplicationConfig.EVNHCMCConfig.CustomerCode,
 		FromDate:     req.FromDate,
 		ToDate:       req.ToDate,
 	}

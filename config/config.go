@@ -16,7 +16,7 @@ type Configuration struct {
 type ApplicationConfig struct {
 	Name           string
 	Env            string
-	EnvConfig      EvnConfig
+	EVNHCMCConfig  EVNHCMCConfig
 	TelegramConfig TelegramConfig
 }
 
@@ -32,7 +32,7 @@ type TLSServerConfig struct {
 	CertFile string
 	KeyFile  string
 }
-type EvnConfig struct {
+type EVNHCMCConfig struct {
 	Username                  string
 	Password                  string
 	CustomerCode              string
@@ -63,7 +63,7 @@ func Load() *Configuration {
 		ApplicationConfig: ApplicationConfig{
 			Name: GetEnv("APP_NAME", "social"),
 			Env:  GetEnv("APP_ENV", "development"),
-			EnvConfig: EvnConfig{
+			EVNHCMCConfig: EVNHCMCConfig{
 				Username:                  GetEnv("EVN_USERNAME", ""),
 				Password:                  GetEnv("EVN_PASSWORD", ""),
 				CustomerCode:              GetEnv("EVN_CUSTOMER", ""),

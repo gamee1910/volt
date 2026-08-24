@@ -1,4 +1,4 @@
-package client
+package evnhcmc
 
 import (
 	"bytes"
@@ -11,18 +11,17 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/gamee1910/volt/internal/application/dto"
 	pkgjson "github.com/gamee1910/volt/pkg/json"
 )
 
-type EVNClient struct {
+type evnClient struct {
 	httpClient                *http.Client
 	baseURL                   *url.URL
 	loginAPI                  string
 	electricityConsumptionAPI string
 }
 
-func NewEVNClient(rawBaseURL, rawLoginAPIPath, rawElectricityConsumptionAPIPath string) (*EVNClient, error) {
+func NewEVNClient(rawBaseURL, rawLoginAPIPath, rawElectricityConsumptionAPIPath string) (EVNClient, error) {
 	if rawBaseURL == "" {
 		return nil, fmt.Errorf("EVN_BASE_URL is required")
 	}
@@ -43,7 +42,7 @@ func NewEVNClient(rawBaseURL, rawLoginAPIPath, rawElectricityConsumptionAPIPath 
 		return nil, fmt.Errorf("create cookie jar: %w", err)
 	}
 
-	return &EVNClient{
+	return &evnClient{
 		httpClient: &http.Client{
 			Timeout: 20 * time.Second,
 			Jar:     jar,
@@ -54,7 +53,7 @@ func NewEVNClient(rawBaseURL, rawLoginAPIPath, rawElectricityConsumptionAPIPath 
 	}, nil
 }
 
-func (c *EVNClient) Login(ctx context.Context, username, password string) error {
+func (c *evnClient) Login(ctx context.Context, username, password string) error {
 	fields := map[string]string{
 		"u":        username,
 		"p":        password,
@@ -70,9 +69,9 @@ func (c *EVNClient) Login(ctx context.Context, username, password string) error 
 	return nil
 }
 
-func (c *EVNClient) GetDailyPowerUsageData(
-	ctx context.Context, reqData dto.DailyPowerUsageRequest,
-) (*dto.DailyPowerUsageResponse, error) {
+func (c *evnClient) GetDailyPowerUsageData(
+	ctx context.Context, reqData DailyPowerUsageRequest,
+) (*DailyPowerUsageResponse, error) {
 	fields := map[string]string{
 		"input_makh":    reqData.CustomerCode,
 		"input_tungay":  reqData.FromDate,
@@ -113,16 +112,16 @@ func (c *EVNClient) GetDailyPowerUsageData(
 		return nil, fmt.Errorf("parse daily power usage response: %w", err)
 	}
 
-	result := &dto.DailyPowerUsageResponse{
+	result := &DailyPowerUsageResponse{
 		State: raw.State,
 		Alert: raw.Alert,
-		Data: dto.DailyPowerUsageData{
+		Data: DailyPowerUsageData{
 			NumberOfDays: raw.Data.NumberOfDays,
 			Title:        raw.Data.Title,
 		},
 	}
 	for _, item := range raw.Data.DailyOutputs {
-		result.Data.DailyOutputs = append(result.Data.DailyOutputs, dto.DailyPowerUsage{
+		result.Data.DailyOutputs = append(result.Data.DailyOutputs, DailyPowerUsage{
 			Date:                 item.Date,
 			FullDate:             item.FullDate,
 			OffPeakIndex:         item.OffPeakIndex,
@@ -142,7 +141,7 @@ func (c *EVNClient) GetDailyPowerUsageData(
 	return result, nil
 }
 
-func (c *EVNClient) postMultipart(
+func (c *evnClient) postMultipart(
 	ctx context.Context, endpointPath string, fields map[string]string,
 ) ([]byte, error) {
 	targetURL := c.baseURL.ResolveReference(&url.URL{Path: endpointPath}).String()

@@ -1,35 +1,30 @@
-package router
+package routes
 
 import (
 	"context"
 	"strings"
 
-	"github.com/gamee1910/volt/internal/application/port"
-	"github.com/gamee1910/volt/internal/infrastructure/client"
 	"github.com/gamee1910/volt/internal/interfaces/bot/command"
 	"github.com/gamee1910/volt/pkg/logger"
+	"github.com/gamee1910/volt/pkg/telegram"
 )
 
 type Router struct {
-	log         *logger.Logger
-	sender      port.TelegramClient
-	electricity *command.ElectricityCommand
+	log            *logger.Logger
+	telegramClient telegram.TelegramClient
+	electricity    *command.ElectricityCommand
 }
 
 func NewRouter(
 	log *logger.Logger,
-	sender port.TelegramClient,
+	telegramClient telegram.TelegramClient,
 	electricity *command.ElectricityCommand,
 ) *Router {
-	return &Router{log: log, sender: sender, electricity: electricity}
+	return &Router{log: log, telegramClient: telegramClient, electricity: electricity}
 }
 
-func (r *Router) SetSender(sender port.TelegramClient) {
-	r.sender = sender
-}
-
-// DefaultHandler trả về MessageHandler — type thuần Go, không phụ thuộc go-telegram/bot
-func (r *Router) DefaultHandler() client.MessageHandler {
+// DefaultHandler trả về MessageHandler
+func (r *Router) DefaultHandler() telegram.MessageHandler {
 	return func(ctx context.Context, chatID int64, text string) {
 		switch parseCommand(text) {
 		case "/yesterday":
@@ -50,7 +45,7 @@ func (r *Router) DefaultHandler() client.MessageHandler {
 			}
 		case "/start", "/help":
 			msg := "Volt Telegram Bot\n\nDanh sách lệnh:\n/yesterday - Xem sản lượng điện ngày hôm qua\n/sync [from_date] [to_date] - Đồng bộ dữ liệu từ EVN (mặc định: từ đầu tháng)\n/get - Xem toàn bộ dữ liệu"
-			if err := r.sender.SendMessage(ctx, chatID, msg); err != nil {
+			if err := r.telegramClient.SendMessage(ctx, chatID, msg); err != nil {
 				r.log.Error("handle_help_failed", map[string]any{"error": err.Error()})
 			}
 		}

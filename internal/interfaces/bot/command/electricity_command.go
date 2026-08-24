@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"github.com/gamee1910/volt/config"
-	"github.com/gamee1910/volt/internal/application/dto"
-	"github.com/gamee1910/volt/internal/application/port"
 	"github.com/gamee1910/volt/internal/domain/service"
+	"github.com/gamee1910/volt/pkg/evnhcmc"
 	"github.com/gamee1910/volt/pkg/logger"
+	"github.com/gamee1910/volt/pkg/telegram"
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
 )
@@ -18,66 +18,62 @@ import (
 type ElectricityCommand struct {
 	cfg                *config.Configuration
 	log                *logger.Logger
-	sender             port.TelegramClient
+	telegramClient     telegram.TelegramClient
 	electricityService service.ElectricityService
 }
 
 func NewElectricityCommand(
 	cfg *config.Configuration,
 	log *logger.Logger,
-	sender port.TelegramClient,
+	telegramClient telegram.TelegramClient,
 	electricityService service.ElectricityService,
 ) *ElectricityCommand {
 	return &ElectricityCommand{
 		cfg:                cfg,
 		log:                log,
-		sender:             sender,
+		telegramClient:     telegramClient,
 		electricityService: electricityService,
 	}
-}
-
-func (c *ElectricityCommand) SetSender(sender port.TelegramClient) {
-	c.sender = sender
 }
 
 func (c *ElectricityCommand) Yesterday(ctx context.Context, chatID int64) error {
 	usage, err := c.electricityService.GetYesterDayUsage(ctx)
 	if err != nil {
 		c.log.Error("failed_to_get_yesterday_usage", map[string]any{"error": err.Error()})
-		return c.sender.SendMessage(ctx, chatID, "Failed to fetch data: "+err.Error())
+		return c.telegramClient.SendMessage(ctx, chatID, "Failed to fetch data: "+err.Error())
 	}
 
 	msg := fmt.Sprintf(
 		"Điện năng ngày %s:\n Tiêu thụ: %.2f KWh\n Tổng tiền tháng này: %s",
 		usage.MeasurementDate.Format("02/01/2006"),
 		usage.ConsumptionKWh,
-		formatVND(usage.TotalAmount),
+		c.formatVND(usage.TotalAmount),
 	)
-	return c.sender.SendMessage(ctx, chatID, msg)
+	return c.telegramClient.SendMessage(ctx, chatID, msg)
 }
 
 func (c *ElectricityCommand) Login(ctx context.Context, chatID int64) error {
 	err := c.electricityService.LoginEVN(
 		ctx,
-		c.cfg.ApplicationConfig.EnvConfig.Username,
-		c.cfg.ApplicationConfig.EnvConfig.Password,
+		c.cfg.ApplicationConfig.EVNHCMCConfig.Username,
+		c.cfg.ApplicationConfig.EVNHCMCConfig.Password,
 	)
 	if err != nil {
 		c.log.Error("failed_to_login", map[string]any{"error": err.Error()})
-		return c.sender.SendMessage(ctx, chatID, "Đăng nhập thất bại: "+err.Error())
+		return c.telegramClient.SendMessage(ctx, chatID, "Đăng nhập thất bại: "+err.Error())
 	}
-	return c.sender.SendMessage(ctx, chatID, "Đăng nhập thành công")
+	return c.telegramClient.SendMessage(ctx, chatID, "Đăng nhập thành công")
 }
 
 func (c *ElectricityCommand) GetAll(ctx context.Context, chatID int64) error {
 	resp, err := c.electricityService.GetAll(ctx)
 	if err != nil {
 		c.log.Error("failed_to_get_all_usage", map[string]any{"error": err.Error()})
-		return c.sender.SendMessage(ctx, chatID, "Failed to fetch data: "+err.Error())
+		return c.telegramClient.SendMessage(ctx, chatID, "Failed to fetch data: "+err.Error())
 	}
 
 	if len(resp.Data) == 0 {
-		return c.sender.SendMessage(ctx, chatID, "Chưa có dữ liệu sản lượng điện.")
+		return c.telegramClient.SendMessage(ctx, chatID, "Chưa có dữ liệu sản lượng điện.")
 	}
 
 	var sb strings.Builder
@@ -86,18 +82,18 @@ func (c *ElectricityCommand) GetAll(ctx context.Context, chatID int64) error {
 		sb.WriteString(fmt.Sprintf("• Ngày %s: %.2f KWh | %s\n",
 			usage.MeasurementDate.Format("02/01/2006"),
 			usage.ConsumptionKWh,
-			formatVND(usage.TotalAmount),
+			c.formatVND(usage.TotalAmount),
 		))
 	}
 	sb.WriteString(fmt.Sprintf("\n Tổng tiêu thụ: %.2f KWh\n Tổng tiền ước tính: %s",
-		resp.TotalKWh, formatVND(resp.TotalAmount),
+		resp.TotalKWh, c.formatVND(resp.TotalAmount),
 	))
 
 	msgText := sb.String()
 	if len(msgText) > 4000 {
 		return c.sendChunked(ctx, chatID, msgText)
 	}
-	return c.sender.SendMessage(ctx, chatID, msgText)
+	return c.telegramClient.SendMessage(ctx, chatID, msgText)
 }
 
 func (c *ElectricityCommand) Sync(ctx context.Context, chatID int64, text string) error {
@@ -117,9 +113,9 @@ func (c *ElectricityCommand) Sync(ctx context.Context, chatID int64, text string
 		toDate = now.Format("02/01/2006")
 	}
 
-	req := dto.DailyPowerUsageRequest{
+	req := evnhcmc.DailyPowerUsageRequest{
 		Token:        "",
-		CustomerCode: c.cfg.ApplicationConfig.EnvConfig.CustomerCode,
+		CustomerCode: c.cfg.ApplicationConfig.EVNHCMCConfig.CustomerCode,
 		FromDate:     fromDate,
 		ToDate:       toDate,
 	}
@@ -130,10 +126,10 @@ func (c *ElectricityCommand) Sync(ctx context.Context, chatID int64, text string
 			"to_date":   toDate,
 			"error":     err.Error(),
 		})
-		return c.sender.SendMessage(ctx, chatID, fmt.Sprintf("Sync failed: %s", err.Error()))
+		return c.telegramClient.SendMessage(ctx, chatID, fmt.Sprintf("Sync failed: %s", err.Error()))
 	}
 
-	return c.sender.SendMessage(ctx, chatID, fmt.Sprintf("Đồng bộ dữ liệu thành công từ %s đến %s!", fromDate, toDate))
+	return c.telegramClient.SendMessage(ctx, chatID, fmt.Sprintf("Đồng bộ dữ liệu thành công từ %s đến %s!", fromDate, toDate))
 }
 
 func (c *ElectricityCommand) sendChunked(ctx context.Context, chatID int64, fullText string) error {
@@ -142,7 +138,7 @@ func (c *ElectricityCommand) sendChunked(ctx context.Context, chatID int64, full
 
 	for _, line := range lines {
 		if currentChunk.Len()+len(line)+1 > 4000 {
-			if err := c.sender.SendMessage(ctx, chatID, currentChunk.String()); err != nil {
+			if err := c.telegramClient.SendMessage(ctx, chatID, currentChunk.String()); err != nil {
 				return err
 			}
 			currentChunk.Reset()
@@ -152,12 +148,12 @@ func (c *ElectricityCommand) sendChunked(ctx context.Context, chatID int64, full
 	}
 
 	if currentChunk.Len() > 0 {
-		return c.sender.SendMessage(ctx, chatID, currentChunk.String())
+		return c.telegramClient.SendMessage(ctx, chatID, currentChunk.String())
 	}
 	return nil
 }
 
-func formatVND(amount float64) string {
+func (c *ElectricityCommand) formatVND(amount float64) string {
 	p := message.NewPrinter(language.Vietnamese)
 	return p.Sprintf("%.0f VND", amount)
 }

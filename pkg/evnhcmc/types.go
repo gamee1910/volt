@@ -1,4 +1,4 @@
-package dto
+package evnhcmc
 
 type DailyPowerUsageRequest struct {
 	Token        string
