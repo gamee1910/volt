@@ -107,28 +107,28 @@ sequenceDiagram
 
 2. Fill in your environment parameters in `.envrc`:
 
-```bash
-export EVN_USERNAME="your_username"
-export EVN_PASSWORD="your_password"
-export EVN_CUSTOMER="your_customer_code"
-export EVN_BASE_URL=""
-export EVN_LOGIN_API=""
-export EVN_ELECTRICITY_CONSUMPTION_API=""
+    ```bash
+    export EVN_USERNAME="your_username"
+    export EVN_PASSWORD="your_password"
+    export EVN_CUSTOMER="your_customer_code"
+    export EVN_BASE_URL=""
+    export EVN_LOGIN_API=""
+    export EVN_ELECTRICITY_CONSUMPTION_API=""
+    
+    export TELEGRAM_API_KEY=""
+    
+    export DB_HOST="localhost"
+    export DB_PORT="5432"
+    export DB_USER="admin"
+    export DB_PASS="password"
+    export DB_NAME="volt"
+    ```
 
-export TELEGRAM_API_KEY=""
-
-export DB_HOST="localhost"
-export DB_PORT="5432"
-export DB_USER="admin"
-export DB_PASS="password"
-export DB_NAME="volt"
-```
-
-> [!NOTE]
-> `EVN_BASE_URL`, `EVN_LOGIN_API`, and `EVN_ELECTRICITY_CONSUMPTION_API` are required for EVNHCMC API integration.
->
-> - **Contact**: Please reach out to the maintainer if you need assistance regarding API endpoints.
-> - **Disclaimer**: The maintainer assumes no responsibility or liability for any misuse, service disruption, or non-compliance.
+    > [!NOTE]
+    > `EVN_BASE_URL`, `EVN_LOGIN_API`, and `EVN_ELECTRICITY_CONSUMPTION_API` are required for EVNHCMC API integration.
+    >
+    > - **Contact**: Please reach out to the maintainer if you need assistance regarding API endpoints.
+    >   - **Disclaimer**: The maintainer assumes no responsibility or liability for any misuse, service disruption, or non-compliance.
 
 3. Allow `direnv` to load variables automatically:
 
