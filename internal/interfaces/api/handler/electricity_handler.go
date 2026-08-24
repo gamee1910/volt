@@ -1,13 +1,13 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/gamee1910/volt/config"
 	"github.com/gamee1910/volt/internal/application/dto"
 	"github.com/gamee1910/volt/internal/domain/service"
 	"github.com/gamee1910/volt/internal/interfaces/api/handler/request"
+	pkgjson "github.com/gamee1910/volt/pkg/json"
 )
 
 type ElectricityHandler struct {
@@ -31,27 +31,23 @@ func (h *ElectricityHandler) Login(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(err.Error()))
+		pkgjson.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-	_, _ = w.Write([]byte(`{"message": "Login successful"}`))
+	pkgjson.WriteOK(w, map[string]string{"message": "Login successful"})
 }
 
 func (h *ElectricityHandler) SyncFromEVN(w http.ResponseWriter, r *http.Request) {
 	var req request.GetUsageRequest
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := pkgjson.DecodeBody(r, &req); err != nil {
 		req.FromDate = r.URL.Query().Get("from_date")
 		req.ToDate = r.URL.Query().Get("to_date")
 	}
 
 	if req.FromDate == "" || req.ToDate == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		_, _ = w.Write([]byte("customer_code, from_date, and to_date are required"))
+		pkgjson.WriteError(w, http.StatusBadRequest, "customer_code, from_date, and to_date are required")
 		return
 	}
 
@@ -64,38 +60,29 @@ func (h *ElectricityHandler) SyncFromEVN(w http.ResponseWriter, r *http.Request)
 
 	err := h.electricityService.FetchAndSyncMonthlyUsage(r.Context(), evnReq)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(err.Error()))
+		pkgjson.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte(`{"message": "Sync successful"}`))
+	pkgjson.WriteOK(w, map[string]string{"message": "Sync successful"})
 }
 
 func (h *ElectricityHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	resp, err := h.electricityService.GetAll(r.Context())
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(err.Error()))
+		pkgjson.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(resp)
+	pkgjson.WriteOK(w, resp)
 }
 
 func (h *ElectricityHandler) GetYesterdayUsage(w http.ResponseWriter, r *http.Request) {
 	response, err := h.electricityService.GetYesterDayUsage(r.Context())
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte(err.Error()))
+		pkgjson.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(response)
+	pkgjson.WriteOK(w, response)
 }

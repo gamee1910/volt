@@ -3,7 +3,6 @@ package client
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -13,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gamee1910/volt/internal/application/dto"
+	pkgjson "github.com/gamee1910/volt/pkg/json"
 )
 
 type EVNClient struct {
@@ -109,7 +109,7 @@ func (c *EVNClient) GetDailyPowerUsageData(
 			} `json:"sanluong_tungngay"`
 		} `json:"data"`
 	}
-	if err := json.Unmarshal(body, &raw); err != nil {
+	if err := pkgjson.Decode(body, &raw); err != nil {
 		return nil, fmt.Errorf("parse daily power usage response: %w", err)
 	}
 
