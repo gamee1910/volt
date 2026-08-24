@@ -13,6 +13,7 @@ import (
 	"github.com/gamee1910/volt/internal/infrastructure/client"
 	"github.com/gamee1910/volt/internal/infrastructure/persistences/postgres"
 	"github.com/gamee1910/volt/internal/interfaces/api/handler"
+	bothandler "github.com/gamee1910/volt/internal/interfaces/bot/handler"
 	"github.com/gamee1910/volt/pkg/logger"
 	"go.uber.org/zap"
 )
@@ -67,14 +68,23 @@ func (c *Container) initializerHandler() {
 	repositories := c.initRepositories()
 	services := c.initServices(repositories)
 
-	telegramClient, err := client.NewTelegramClient(
+	botHandler := bothandler.NewElectricityHandler(
 		c.cfg,
 		c.log,
+		nil,
 		services.electricityService,
+	)
+
+	telegramClient, err := client.NewTelegramClient(
+		c.cfg.ApplicationConfig.TelegramConfig.TelegramAPIKey,
+		c.log,
+		botHandler.DefaultHandler(),
 	)
 	if err != nil {
 		c.log.Fatalf("failed to create Telegram client: %v", err)
 	}
+
+	botHandler.SetSender(telegramClient)
 
 	c.telegramClient = telegramClient
 	c.electricityHandler = handler.NewElectricityHandler(services.electricityService, c.cfg)
