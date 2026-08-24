@@ -4,6 +4,8 @@ export EVN_BASE_URL=""
 export EVN_LOGIN_API=""
 export EVN_ELECTRICITY_CONSUMPTION_API=""
 
+export TELEGRAM_API_KEY=""
+
 export APP_NAME=""
 export APP_ENV=""
 export SERVER_PORT=""
