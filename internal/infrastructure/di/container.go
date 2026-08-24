@@ -8,6 +8,7 @@ import (
 	"github.com/gamee1910/volt/config"
 	"github.com/gamee1910/volt/internal/application"
 	"github.com/gamee1910/volt/internal/domain/ports"
+	repositories2 "github.com/gamee1910/volt/internal/domain/repositories"
 	"github.com/gamee1910/volt/internal/domain/service"
 	"github.com/gamee1910/volt/internal/infrastructure/client"
 	"github.com/gamee1910/volt/internal/infrastructure/persistences/postgres"
@@ -80,7 +81,7 @@ func (c *Container) initializerHandler() {
 }
 
 type repositories struct {
-	electricityRepository ports.ElectricityRepository
+	electricityRepository repositories2.ElectricityRepository
 }
 
 func (c *Container) initRepositories() repositories {
