@@ -6,11 +6,11 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/gamee1910/volt/internal/application/dto"
+	"github.com/gamee1910/volt/internal/application/port"
 	"github.com/gamee1910/volt/internal/domain/entity"
-	"github.com/gamee1910/volt/internal/domain/ports"
 	"github.com/gamee1910/volt/internal/domain/repositories"
 	"github.com/gamee1910/volt/internal/domain/service"
-	"github.com/gamee1910/volt/internal/interfaces/api/handler/request"
 	"github.com/gamee1910/volt/internal/interfaces/api/handler/response"
 )
 
@@ -22,12 +22,12 @@ const (
 
 type electricityService struct {
 	electricityRepository repositories.ElectricityRepository
-	evnClient             ports.EVNClient
+	evnClient             port.EVNClient
 }
 
 func NewElectricityService(
 	electricityRepository repositories.ElectricityRepository,
-	evnClient ports.EVNClient,
+	evnClient port.EVNClient,
 ) service.ElectricityService {
 	return &electricityService{
 		electricityRepository: electricityRepository,
@@ -39,7 +39,7 @@ func (s *electricityService) LoginEVN(ctx context.Context, username string, pass
 }
 
 func (s *electricityService) FetchAndSyncMonthlyUsage(
-	ctx context.Context, req request.DailyPowerUsageRequest,
+	ctx context.Context, req dto.DailyPowerUsageRequest,
 ) error {
 	resp, err := s.evnClient.GetDailyPowerUsageData(ctx, req)
 	if err != nil {

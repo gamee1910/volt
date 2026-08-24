@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/gamee1910/volt/config"
-	"github.com/gamee1910/volt/internal/domain/ports"
+	"github.com/gamee1910/volt/internal/application/dto"
+	"github.com/gamee1910/volt/internal/application/port"
 	"github.com/gamee1910/volt/internal/domain/service"
-	"github.com/gamee1910/volt/internal/interfaces/api/handler/request"
 	"github.com/gamee1910/volt/pkg/logger"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -28,7 +28,7 @@ func NewTelegramClient(
 	cfg *config.Configuration,
 	log *logger.Logger,
 	electricityService service.ElectricityService,
-) (ports.TelegramClient, error) {
+) (port.TelegramClient, error) {
 	tc := &TelegramClient{
 		cfg:                cfg,
 		log:                log,
@@ -180,7 +180,7 @@ func (c *TelegramClient) handleSyncCommand(ctx context.Context, chatID int64, te
 		toDate = now.Format("02/01/2006")
 	}
 
-	req := request.DailyPowerUsageRequest{
+	req := dto.DailyPowerUsageRequest{
 		Token:        "",
 		CustomerCode: c.cfg.ApplicationConfig.EnvConfig.CustomerCode,
 		FromDate:     fromDate,

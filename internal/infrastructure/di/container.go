@@ -7,7 +7,7 @@ import (
 
 	"github.com/gamee1910/volt/config"
 	"github.com/gamee1910/volt/internal/application"
-	"github.com/gamee1910/volt/internal/domain/ports"
+	"github.com/gamee1910/volt/internal/application/port"
 	repositories2 "github.com/gamee1910/volt/internal/domain/repositories"
 	"github.com/gamee1910/volt/internal/domain/service"
 	"github.com/gamee1910/volt/internal/infrastructure/client"
@@ -23,7 +23,7 @@ type Container struct {
 	log *logger.Logger
 	//Client
 	evnClient      *client.EVNClient
-	telegramClient ports.TelegramClient
+	telegramClient port.TelegramClient
 
 	//Handler
 	electricityHandler *handler.ElectricityHandler
@@ -33,7 +33,7 @@ func (c *Container) ElectricityHandler() *handler.ElectricityHandler {
 	return c.electricityHandler
 }
 
-func (c *Container) TelegramClient() ports.TelegramClient {
+func (c *Container) TelegramClient() port.TelegramClient {
 	return c.telegramClient
 }
 

@@ -12,8 +12,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/gamee1910/volt/internal/interfaces/api/handler/request"
-	"github.com/gamee1910/volt/internal/interfaces/api/handler/response"
+	"github.com/gamee1910/volt/internal/application/dto"
 )
 
 type EVNClient struct {
@@ -72,8 +71,8 @@ func (c *EVNClient) Login(ctx context.Context, username, password string) error 
 }
 
 func (c *EVNClient) GetDailyPowerUsageData(
-	ctx context.Context, reqData request.DailyPowerUsageRequest,
-) (*response.DailyPowerUsageResponse, error) {
+	ctx context.Context, reqData dto.DailyPowerUsageRequest,
+) (*dto.DailyPowerUsageResponse, error) {
 	fields := map[string]string{
 		"input_makh":    reqData.CustomerCode,
 		"input_tungay":  reqData.FromDate,
@@ -86,12 +85,61 @@ func (c *EVNClient) GetDailyPowerUsageData(
 		return nil, fmt.Errorf("get daily power usage: %w", err)
 	}
 
-	var result response.DailyPowerUsageResponse
-	if err := json.Unmarshal(body, &result); err != nil {
+	// raw JSON struct để unmarshal đúng field name từ EVN API
+	var raw struct {
+		State string `json:"state"`
+		Alert string `json:"alert"`
+		Data  struct {
+			NumberOfDays int    `json:"soNgay"`
+			Title        string `json:"tieude"`
+			DailyOutputs []struct {
+				Date                 string  `json:"ngay"`
+				FullDate             string  `json:"ngayFull"`
+				OffPeakIndex         float64 `json:"TD"`
+				StandardIndex        float64 `json:"BT"`
+				PeakIndex            float64 `json:"CD"`
+				TotalIndex           float64 `json:"Tong"`
+				OffPeakOutput        string  `json:"sanluong_TD"`
+				StandardOutput       string  `json:"sanluong_BT"`
+				PeakOutput           string  `json:"sanluong_CD"`
+				TotalOutput          string  `json:"sanluong_tong"`
+				MultiplicationFactor float64 `json:"hsn"`
+				MeasurementTimestamp string  `json:"thoidiemdo"`
+				IsBilled             int     `json:"isChotHoaDon"`
+			} `json:"sanluong_tungngay"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(body, &raw); err != nil {
 		return nil, fmt.Errorf("parse daily power usage response: %w", err)
 	}
 
-	return &result, nil
+	result := &dto.DailyPowerUsageResponse{
+		State: raw.State,
+		Alert: raw.Alert,
+		Data: dto.DailyPowerUsageData{
+			NumberOfDays: raw.Data.NumberOfDays,
+			Title:        raw.Data.Title,
+		},
+	}
+	for _, item := range raw.Data.DailyOutputs {
+		result.Data.DailyOutputs = append(result.Data.DailyOutputs, dto.DailyPowerUsage{
+			Date:                 item.Date,
+			FullDate:             item.FullDate,
+			OffPeakIndex:         item.OffPeakIndex,
+			StandardIndex:        item.StandardIndex,
+			PeakIndex:            item.PeakIndex,
+			TotalIndex:           item.TotalIndex,
+			OffPeakOutput:        item.OffPeakOutput,
+			StandardOutput:       item.StandardOutput,
+			PeakOutput:           item.PeakOutput,
+			TotalOutput:          item.TotalOutput,
+			MultiplicationFactor: item.MultiplicationFactor,
+			MeasurementTimestamp: item.MeasurementTimestamp,
+			IsBilled:             item.IsBilled,
+		})
+	}
+
+	return result, nil
 }
 
 func (c *EVNClient) postMultipart(

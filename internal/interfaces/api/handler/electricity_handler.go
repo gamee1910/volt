@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gamee1910/volt/config"
+	"github.com/gamee1910/volt/internal/application/dto"
 	"github.com/gamee1910/volt/internal/domain/service"
 	"github.com/gamee1910/volt/internal/interfaces/api/handler/request"
 )
@@ -54,7 +55,7 @@ func (h *ElectricityHandler) SyncFromEVN(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	evnReq := request.DailyPowerUsageRequest{
+	evnReq := dto.DailyPowerUsageRequest{
 		Token:        "",
 		CustomerCode: h.cfg.ApplicationConfig.EnvConfig.CustomerCode,
 		FromDate:     req.FromDate,

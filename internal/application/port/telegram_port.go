@@ -1,8 +1,6 @@
-package ports
+package port
 
-import (
-	"context"
-)
+import "context"
 
 type TelegramClient interface {
 	Start(ctx context.Context) error
