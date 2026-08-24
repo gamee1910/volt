@@ -41,10 +41,10 @@ The application runs an **in-process cron job** (`0 */12 * * *`) powered by `rob
 
 ```mermaid
 sequenceDiagram
-    participant Main as cmd/api/main.go
-    participant Container as di.Container
+    participant Main as main
+    participant Container as Container
     participant Scheduler as EVNSyncScheduler
-    participant SyncJob as application.SyncJob
+    participant SyncJob as SyncJob
     participant EVNClient as EVNClient (HTTP)
     participant DB as Supabase PostgreSQL
 
@@ -53,14 +53,14 @@ sequenceDiagram
     Container->>Scheduler: NewEVNSyncScheduler(job, log)
 
     Main->>Scheduler: Start(job)
-    Note over Scheduler: go job.Run() ← ngay lần đầu
-    Note over Scheduler: cron.Start() ← "0 */12 * * *"
+    Note over Scheduler: go job.Run()
+    Note over Scheduler: cron.Start()
 
-    SyncJob->>EVNClient: Login(user, pass)
-    SyncJob->>EVNClient: GetDailyPowerUsageData(từ ngày 1 tháng → hôm nay)
+    SyncJob->>EVNClient: Login(ctx, user, pass)
+    SyncJob->>EVNClient: GetDailyPowerUsageData(ctx, request)
     SyncJob->>DB: Upsert(consumption records)
 
-    loop Lúc 0h và 12h mỗi ngày
+    loop from 0:00 and 12:00 daily
         Scheduler->>SyncJob: Run()
         SyncJob->>EVNClient: Login + Fetch
         SyncJob->>DB: Upsert
@@ -68,7 +68,7 @@ sequenceDiagram
 
     Note over Main: SIGINT/SIGTERM (Railway restart/deploy)
     Main->>Scheduler: Stop()
-    Note over Scheduler: Chờ job hiện tại xong rồi mới dừng
+    Note over Scheduler: Wait for current job to finish, then shutdown
 ```
 
 ---
