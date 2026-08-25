@@ -21,13 +21,13 @@ func NewElectricityRepository(db *sql.DB) repository.ElectricityRepository {
 func (repository *ElectricityRepository) Upsert(ctx context.Context, req *entity.ElectricityConsumption) error {
 	query := `
 		INSERT INTO electricity_consumption(
-			measurement_date, consumption_kwh, created_at
+			measurement_date, consumption_kwh, created_at, updated_at
 		) VALUES (
-		          $1, $2, NOW()
+		          $1, $2, NOW(), NOW()
 		) 
 	  	ON CONFLICT (measurement_date) 
 		DO UPDATE SET 
-			  consumption_kwh = EXCLUDED.consumption_kwh
+			  consumption_kwh = EXCLUDED.consumption_kwh, updated_at = NOW()
  	`
 	_, err := repository.db.ExecContext(
 		ctx,
@@ -43,7 +43,7 @@ func (repository *ElectricityRepository) Upsert(ctx context.Context, req *entity
 	return nil
 }
 
-func (repository *ElectricityRepository) GetByDate(ctx context.Context, date time.Time) (*entity.ElectricityConsumption, error) {
+func (repository *ElectricityRepository) FetchByDate(ctx context.Context, date time.Time) (*entity.ElectricityConsumption, error) {
 
 	query := `
 		SELECT id, measurement_date, consumption_kwh, created_at
@@ -70,7 +70,7 @@ func (repository *ElectricityRepository) GetByDate(ctx context.Context, date tim
 
 }
 
-func (repository *ElectricityRepository) GetAll(ctx context.Context) ([]*entity.ElectricityConsumption, error) {
+func (repository *ElectricityRepository) FetchAll(ctx context.Context) ([]*entity.ElectricityConsumption, error) {
 
 	query := `SELECT id, measurement_date, consumption_kwh, created_at FROM electricity_consumption`
 
@@ -105,7 +105,7 @@ func (repository *ElectricityRepository) GetAll(ctx context.Context) ([]*entity.
 	return consumptions, nil
 }
 
-func (repository *ElectricityRepository) GetTotalConsumption(ctx context.Context, fromDate, toDate time.Time) (float64, error) {
+func (repository *ElectricityRepository) CalculateTotalConsumptionFromDateToDate(ctx context.Context, fromDate, toDate time.Time) (float64, error) {
 	query := `
 		SELECT COALESCE(SUM(consumption_kwh), 0) AS total_consumption
 		FROM electricity_consumption

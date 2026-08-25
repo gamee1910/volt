@@ -27,7 +27,6 @@ func SetupRouter(db *sql.DB, container *di.Container) http.Handler {
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Group(func(r chi.Router) {
-			r.Post("/login", container.ElectricityHandler().Login)
 			r.Post("/sync", container.ElectricityHandler().SyncFromEVN)
 			r.Get("/", container.ElectricityHandler().GetAll)
 			r.Get("/yesterday", container.ElectricityHandler().GetYesterdayUsage)

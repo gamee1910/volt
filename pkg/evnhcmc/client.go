@@ -11,23 +11,42 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/gamee1910/volt/config"
 	pkgjson "github.com/gamee1910/volt/pkg/json"
+	"github.com/gamee1910/volt/pkg/logger"
 )
 
 type evnClient struct {
 	httpClient                *http.Client
 	baseURL                   *url.URL
+	cfg                       *config.Configuration
+	log                       *logger.Logger
 	loginAPI                  string
 	electricityConsumptionAPI string
 }
 
-func NewEVNClient(rawBaseURL, rawLoginAPIPath, rawElectricityConsumptionAPIPath string) (EVNClient, error) {
+func NewEVNClient(
+	cfg *config.Configuration,
+	log *logger.Logger,
+) (EVNClient, error) {
+	if cfg == nil {
+		return nil, fmt.Errorf("application config is required")
+	}
+
+	var (
+		rawBaseURL                       = cfg.ApplicationConfig.EVNHCMCConfig.BaseURL
+		rawLoginAPIPath                  = cfg.ApplicationConfig.EVNHCMCConfig.LoginAPI
+		rawElectricityConsumptionAPIPath = cfg.ApplicationConfig.EVNHCMCConfig.ElectricityConsumptionAPI
+	)
+
 	if rawBaseURL == "" {
 		return nil, fmt.Errorf("EVN_BASE_URL is required")
 	}
+
 	if rawLoginAPIPath == "" {
 		return nil, fmt.Errorf("EVN_PATH_LOGIN is required")
 	}
+
 	if rawElectricityConsumptionAPIPath == "" {
 		return nil, fmt.Errorf("EVN_PATH_DIEN_NANG_NGAY is required")
 	}
@@ -50,33 +69,90 @@ func NewEVNClient(rawBaseURL, rawLoginAPIPath, rawElectricityConsumptionAPIPath 
 		baseURL:                   parsedBaseURL,
 		loginAPI:                  rawLoginAPIPath,
 		electricityConsumptionAPI: rawElectricityConsumptionAPIPath,
+		cfg:                       cfg,
+		log:                       log,
 	}, nil
 }
 
-func (c *evnClient) Login(ctx context.Context, username, password string) error {
+func (c *evnClient) GetDailyPowerUsageData(
+	ctx context.Context, reqData DailyPowerUsageRequest,
+) (*DailyPowerUsageResponse, error) {
+
+	if err := c.ensureLogin(ctx); err != nil {
+		return nil, err
+	}
+
+	return c.fetchDailyPowerUsage(ctx, reqData)
+}
+
+func (c *evnClient) login(ctx context.Context) error {
 	fields := map[string]string{
-		"u":        username,
-		"p":        password,
+		"u":        c.cfg.ApplicationConfig.EVNHCMCConfig.Username,
+		"p":        c.cfg.ApplicationConfig.EVNHCMCConfig.Password,
 		"remember": "1",
 		"token":    "",
 	}
 
-	_, err := c.postMultipart(ctx, c.loginAPI, fields)
-	if err != nil {
+	if _, err := c.postMultipart(ctx, c.loginAPI, fields); err != nil {
+		return fmt.Errorf("login EVNHCMC: %w", err)
+	}
+
+	if !c.hasSessionCookie() {
+		return fmt.Errorf("login EVNHCMC succeeded but session cookie was not created")
+	}
+
+	return nil
+}
+
+func (c *evnClient) ensureLogin(ctx context.Context) error {
+	if c.hasSessionCookie() {
+		return nil
+	}
+
+	if err := c.login(ctx); err != nil {
 		return fmt.Errorf("login EVNHCMC: %w", err)
 	}
 
 	return nil
 }
 
-func (c *evnClient) GetDailyPowerUsageData(
+func (c *evnClient) hasSessionCookie() bool {
+	cookies := c.httpClient.Jar.Cookies(c.baseURL)
+
+	var (
+		hasEVNSession bool
+		hasBIGIP      bool
+		hasTS         bool
+	)
+
+	for _, cookie := range cookies {
+		if cookie.Value == "" {
+			continue
+		}
+
+		switch cookie.Name {
+		case "evn_session":
+			hasEVNSession = true
+
+		case "BIGipServerPool_CSKH_WEB_192.168.36.113_443":
+			hasBIGIP = true
+
+		case "TS018cfa5d":
+			hasTS = true
+		}
+	}
+
+	return hasEVNSession && hasBIGIP && hasTS
+}
+
+func (c *evnClient) fetchDailyPowerUsage(
 	ctx context.Context, reqData DailyPowerUsageRequest,
 ) (*DailyPowerUsageResponse, error) {
 	fields := map[string]string{
-		"input_makh":    reqData.CustomerCode,
+		"input_makh":    c.cfg.ApplicationConfig.EVNHCMCConfig.CustomerCode,
 		"input_tungay":  reqData.FromDate,
 		"input_denngay": reqData.ToDate,
-		"token":         reqData.Token,
+		"token":         "",
 	}
 
 	body, err := c.postMultipart(ctx, c.electricityConsumptionAPI, fields)
@@ -84,61 +160,12 @@ func (c *evnClient) GetDailyPowerUsageData(
 		return nil, fmt.Errorf("get daily power usage: %w", err)
 	}
 
-	// raw JSON struct để unmarshal đúng field name từ EVN API
-	var raw struct {
-		State string `json:"state"`
-		Alert string `json:"alert"`
-		Data  struct {
-			NumberOfDays int    `json:"soNgay"`
-			Title        string `json:"tieude"`
-			DailyOutputs []struct {
-				Date                 string  `json:"ngay"`
-				FullDate             string  `json:"ngayFull"`
-				OffPeakIndex         float64 `json:"TD"`
-				StandardIndex        float64 `json:"BT"`
-				PeakIndex            float64 `json:"CD"`
-				TotalIndex           float64 `json:"Tong"`
-				OffPeakOutput        string  `json:"sanluong_TD"`
-				StandardOutput       string  `json:"sanluong_BT"`
-				PeakOutput           string  `json:"sanluong_CD"`
-				TotalOutput          string  `json:"sanluong_tong"`
-				MultiplicationFactor float64 `json:"hsn"`
-				MeasurementTimestamp string  `json:"thoidiemdo"`
-				IsBilled             int     `json:"isChotHoaDon"`
-			} `json:"sanluong_tungngay"`
-		} `json:"data"`
-	}
-	if err := pkgjson.Decode(body, &raw); err != nil {
+	var response DailyPowerUsageResponse
+	if err := pkgjson.Decode(body, &response); err != nil {
 		return nil, fmt.Errorf("parse daily power usage response: %w", err)
 	}
 
-	result := &DailyPowerUsageResponse{
-		State: raw.State,
-		Alert: raw.Alert,
-		Data: DailyPowerUsageData{
-			NumberOfDays: raw.Data.NumberOfDays,
-			Title:        raw.Data.Title,
-		},
-	}
-	for _, item := range raw.Data.DailyOutputs {
-		result.Data.DailyOutputs = append(result.Data.DailyOutputs, DailyPowerUsage{
-			Date:                 item.Date,
-			FullDate:             item.FullDate,
-			OffPeakIndex:         item.OffPeakIndex,
-			StandardIndex:        item.StandardIndex,
-			PeakIndex:            item.PeakIndex,
-			TotalIndex:           item.TotalIndex,
-			OffPeakOutput:        item.OffPeakOutput,
-			StandardOutput:       item.StandardOutput,
-			PeakOutput:           item.PeakOutput,
-			TotalOutput:          item.TotalOutput,
-			MultiplicationFactor: item.MultiplicationFactor,
-			MeasurementTimestamp: item.MeasurementTimestamp,
-			IsBilled:             item.IsBilled,
-		})
-	}
-
-	return result, nil
+	return &response, nil
 }
 
 func (c *evnClient) postMultipart(

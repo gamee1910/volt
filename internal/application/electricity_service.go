@@ -9,71 +9,84 @@ import (
 	"github.com/gamee1910/volt/internal/domain/entity"
 	"github.com/gamee1910/volt/internal/domain/repository"
 	"github.com/gamee1910/volt/internal/domain/service"
+	"github.com/gamee1910/volt/internal/interfaces/api/handler/request"
 	"github.com/gamee1910/volt/internal/interfaces/api/handler/response"
 	"github.com/gamee1910/volt/pkg/evnhcmc"
-)
-
-const (
-	vietnamTimeZone = "Asia/Ho_Chi_Minh"
-	startOfDay      = 0
-	endOfMonth      = 1
+	"github.com/gamee1910/volt/pkg/logger"
+	"github.com/gamee1910/volt/pkg/utils"
 )
 
 type electricityService struct {
 	electricityRepository repository.ElectricityRepository
 	evnClient             evnhcmc.EVNClient
+	log                   *logger.Logger
 }
 
 func NewElectricityService(
 	electricityRepository repository.ElectricityRepository,
 	evnClient evnhcmc.EVNClient,
+	log *logger.Logger,
 ) service.ElectricityService {
 	return &electricityService{
 		electricityRepository: electricityRepository,
 		evnClient:             evnClient,
+		log:                   log,
 	}
 }
-func (s *electricityService) LoginEVN(ctx context.Context, username string, password string) error {
-	return s.evnClient.Login(ctx, username, password)
-}
 
-func (s *electricityService) FetchAndSyncMonthlyUsage(
-	ctx context.Context, req evnhcmc.DailyPowerUsageRequest,
+func (s *electricityService) DailyPowerUsage(
+	ctx context.Context, req request.GetUsageRequest,
 ) error {
-	resp, err := s.evnClient.GetDailyPowerUsageData(ctx, req)
+	resp, err := s.evnClient.GetDailyPowerUsageData(
+		ctx,
+		evnhcmc.DailyPowerUsageRequest{
+			FromDate: req.FromDate,
+			ToDate:   req.ToDate,
+		})
 	if err != nil {
 		return fmt.Errorf("failed to fetch EVN data: %w", err)
 	}
 
-	var totalKWh float64
-	var consumptions []*entity.ElectricityConsumption
-
 	for _, item := range resp.Data.DailyOutputs {
-		readingDate := s.parseDate(item.MeasurementTimestamp, item.Date, item.FullDate)
+		kwh, err := strconv.ParseFloat(item.TotalOutput, 64)
+		if err != nil {
+			return fmt.Errorf(
+				"invalid total output %q for date %s: %w",
+				item.TotalOutput,
+				item.Date,
+				err,
+			)
+		}
 
-		kwh, _ := strconv.ParseFloat(item.TotalOutput, 64)
 		if kwh == 0 {
 			kwh = item.TotalIndex
 		}
 
+		parseDate, err := time.Parse("02/01/2006", item.FullDate)
+		if err != nil {
+			return err
+		}
+
 		consumption := &entity.ElectricityConsumption{
-			MeasurementDate: readingDate,
+			MeasurementDate: parseDate,
 			ConsumptionKWh:  kwh,
 		}
-
-		if err = s.electricityRepository.Upsert(ctx, consumption); err != nil {
-			return fmt.Errorf("failed to save consumption for date %s: %w", item.Date, err)
+		if err := s.electricityRepository.Upsert(ctx, consumption); err != nil {
+			return fmt.Errorf(
+				"failed to save consumption for date %s: %w",
+				item.Date,
+				err,
+			)
 		}
-
-		totalKWh += kwh
-		consumptions = append(consumptions, consumption)
 	}
 
 	return nil
 }
 
-func (s *electricityService) GetAll(ctx context.Context) (*response.ElectricityResponse, error) {
-	resp, err := s.electricityRepository.GetAll(ctx)
+func (s *electricityService) GetAll(
+	ctx context.Context,
+) (*response.ElectricityResponse, error) {
+	resp, err := s.electricityRepository.FetchAll(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch: %w", err)
 	}
@@ -84,13 +97,13 @@ func (s *electricityService) GetAll(ctx context.Context) (*response.ElectricityR
 		var responseEntity = &response.ElectricityConsumptionResponse{
 			MeasurementDate: v.MeasurementDate,
 			ConsumptionKWh:  v.ConsumptionKWh,
-			TotalAmount:     s.calculateElectricityBill(v.ConsumptionKWh),
+			TotalAmount:     utils.CalculateElectricityBill(v.ConsumptionKWh),
 		}
 
 		responseEntities = append(responseEntities, responseEntity)
 		totalKWh += v.ConsumptionKWh
 	}
-	totalAmount := s.calculateElectricityBill(totalKWh)
+	totalAmount := utils.CalculateElectricityBill(totalKWh)
 
 	return &response.ElectricityResponse{
 		TotalKWh:    totalKWh,
@@ -99,22 +112,24 @@ func (s *electricityService) GetAll(ctx context.Context) (*response.ElectricityR
 	}, nil
 }
 
-func (s *electricityService) GetYesterDayUsage(ctx context.Context) (*response.ElectricityConsumptionResponse, error) {
-	loc, err := s.loadVietnamTimezone()
+func (s *electricityService) GetYesterDayUsage(
+	ctx context.Context,
+) (*response.ElectricityConsumptionResponse, error) {
+	loc, err := utils.LoadVietnamTimezone()
 	if err != nil {
 		return nil, err
 	}
 
 	now := time.Now().In(loc)
-	yesterday := s.getYesterday(now, loc)
-	firstDayOfMonth := s.getFirstDayOfMonth(now, loc)
+	yesterday := utils.GetYesterday(now, loc)
+	firstDayOfMonth := utils.GetFirstDayOfMonth(now, loc)
 
-	consumption, err := s.electricityRepository.GetByDate(ctx, yesterday)
+	consumption, err := s.electricityRepository.FetchByDate(ctx, yesterday)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get yesterday usage: %w", err)
 	}
 
-	totalKWh, err := s.electricityRepository.GetTotalConsumption(
+	totalKWh, err := s.electricityRepository.CalculateTotalConsumptionFromDateToDate(
 		ctx,
 		firstDayOfMonth,
 		yesterday,
@@ -123,91 +138,11 @@ func (s *electricityService) GetYesterDayUsage(ctx context.Context) (*response.E
 		return nil, fmt.Errorf("failed to get monthly total usage: %w", err)
 	}
 
-	totalAmount := s.calculateElectricityBill(totalKWh)
+	totalAmount := utils.CalculateElectricityBill(totalKWh)
 
 	return &response.ElectricityConsumptionResponse{
 		MeasurementDate: consumption.MeasurementDate,
 		ConsumptionKWh:  consumption.ConsumptionKWh,
 		TotalAmount:     totalAmount,
 	}, nil
-}
-
-func (s *electricityService) loadVietnamTimezone() (*time.Location, error) {
-	loc, err := time.LoadLocation(vietnamTimeZone)
-	if err != nil {
-		return nil, fmt.Errorf("load Vietnam timezone: %w", err)
-	}
-	return loc, nil
-}
-
-func (s *electricityService) getYesterday(now time.Time, loc *time.Location) time.Time {
-	return time.Date(
-		now.Year(),
-		now.Month(),
-		now.Day()-1,
-		startOfDay, startOfDay, startOfDay, 0,
-		loc,
-	)
-}
-
-func (s *electricityService) getFirstDayOfMonth(now time.Time, loc *time.Location) time.Time {
-	return time.Date(
-		now.Year(),
-		now.Month(),
-		endOfMonth,
-		startOfDay, startOfDay, startOfDay, 0,
-		loc,
-	)
-}
-
-func (s *electricityService) calculateElectricityBill(totalKWh float64) float64 {
-	tiers := []struct {
-		limit float64
-		price float64
-	}{
-		{50, 1893},
-		{50, 1956},  // 51-100
-		{100, 2271}, // 101-200
-		{100, 2860}, // 201-300
-		{100, 3197}, // 301-400
-		{0, 3302},   // > 400
-	}
-
-	var totalAmount float64
-	remainingKWh := totalKWh
-	for _, tier := range tiers {
-		if remainingKWh <= 0 {
-			break
-		}
-		if tier.limit == 0 || remainingKWh <= tier.limit {
-			totalAmount += remainingKWh * tier.price
-			break
-		}
-		totalAmount += tier.limit * tier.price
-		remainingKWh -= tier.limit
-	}
-	// Cộng thêm 8% thuế VAT
-	totalAmountWithVAT := totalAmount * 1.08
-	return totalAmountWithVAT
-}
-
-func (s *electricityService) parseDate(timestampStr, dateStr, fullDateStr string) time.Time {
-	layouts := []string{
-		"02/01/2006 15:04:05",
-		"02/01/2006",
-		"2006-01-02 15:04:05",
-		"2006-01-02",
-	}
-
-	for _, input := range []string{timestampStr, dateStr, fullDateStr} {
-		if input == "" {
-			continue
-		}
-		for _, layout := range layouts {
-			if t, err := time.Parse(layout, input); err == nil {
-				return t
-			}
-		}
-	}
-	return time.Time{}
 }

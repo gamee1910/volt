@@ -6,31 +6,30 @@ type DailyPowerUsageRequest struct {
 	FromDate     string
 	ToDate       string
 }
-
 type DailyPowerUsageResponse struct {
-	State string
-	Alert string
-	Data  DailyPowerUsageData
+	State string              `json:"state"`
+	Alert string              `json:"alert"`
+	Data  DailyPowerUsageData `json:"data"`
 }
 
 type DailyPowerUsageData struct {
-	NumberOfDays int
-	Title        string
-	DailyOutputs []DailyPowerUsage
+	NumberOfDays int               `json:"soNgay"`
+	Title        string            `json:"tieude"`
+	DailyOutputs []DailyPowerUsage `json:"sanluong_tungngay"`
 }
 
 type DailyPowerUsage struct {
-	Date                 string
-	FullDate             string
-	OffPeakIndex         float64
-	StandardIndex        float64
-	PeakIndex            float64
-	TotalIndex           float64
-	OffPeakOutput        string
-	StandardOutput       string
-	PeakOutput           string
-	TotalOutput          string
-	MultiplicationFactor float64
-	MeasurementTimestamp string
-	IsBilled             int
+	Date                 string  `json:"ngay"`
+	FullDate             string  `json:"ngayFull"`
+	OffPeakIndex         float64 `json:"TD"`
+	StandardIndex        float64 `json:"BT"`
+	PeakIndex            float64 `json:"CD"`
+	TotalIndex           float64 `json:"Tong"`
+	OffPeakOutput        string  `json:"sanluong_TD"`
+	StandardOutput       string  `json:"sanluong_BT"`
+	PeakOutput           string  `json:"sanluong_CD"`
+	TotalOutput          string  `json:"sanluong_tong"`
+	MultiplicationFactor float64 `json:"hsn"`
+	MeasurementTimestamp string  `json:"thoidiemdo"`
+	IsBilled             int     `json:"isChotHoaDon"`
 }

@@ -8,11 +8,10 @@ import (
 
 	"github.com/gamee1910/volt/config"
 	"github.com/gamee1910/volt/internal/domain/service"
-	"github.com/gamee1910/volt/pkg/evnhcmc"
+	"github.com/gamee1910/volt/internal/interfaces/api/handler/request"
 	"github.com/gamee1910/volt/pkg/logger"
 	"github.com/gamee1910/volt/pkg/telegram"
-	"golang.org/x/text/language"
-	"golang.org/x/text/message"
+	"github.com/gamee1910/volt/pkg/utils"
 )
 
 type ElectricityCommand struct {
@@ -36,7 +35,7 @@ func NewElectricityCommand(
 	}
 }
 
-func (c *ElectricityCommand) Yesterday(ctx context.Context, chatID int64) error {
+func (c *ElectricityCommand) HandleYesterdayCommand(ctx context.Context, chatID int64) error {
 	usage, err := c.electricityService.GetYesterDayUsage(ctx)
 	if err != nil {
 		c.log.Error("failed_to_get_yesterday_usage", map[string]any{"error": err.Error()})
@@ -47,25 +46,12 @@ func (c *ElectricityCommand) Yesterday(ctx context.Context, chatID int64) error 
 		"Điện năng ngày %s:\n Tiêu thụ: %.2f KWh\n Tổng tiền tháng này: %s",
 		usage.MeasurementDate.Format("02/01/2006"),
 		usage.ConsumptionKWh,
-		c.formatVND(usage.TotalAmount),
+		utils.FormatVND(usage.TotalAmount),
 	)
 	return c.telegramClient.SendMessage(ctx, chatID, msg)
 }
 
-func (c *ElectricityCommand) Login(ctx context.Context, chatID int64) error {
-	err := c.electricityService.LoginEVN(
-		ctx,
-		c.cfg.ApplicationConfig.EVNHCMCConfig.Username,
-		c.cfg.ApplicationConfig.EVNHCMCConfig.Password,
-	)
-	if err != nil {
-		c.log.Error("failed_to_login", map[string]any{"error": err.Error()})
-		return c.telegramClient.SendMessage(ctx, chatID, "Đăng nhập thất bại: "+err.Error())
-	}
-	return c.telegramClient.SendMessage(ctx, chatID, "Đăng nhập thành công")
-}
-
-func (c *ElectricityCommand) GetAll(ctx context.Context, chatID int64) error {
+func (c *ElectricityCommand) HandleGetAllCommand(ctx context.Context, chatID int64) error {
 	resp, err := c.electricityService.GetAll(ctx)
 	if err != nil {
 		c.log.Error("failed_to_get_all_usage", map[string]any{"error": err.Error()})
@@ -82,11 +68,11 @@ func (c *ElectricityCommand) GetAll(ctx context.Context, chatID int64) error {
 		sb.WriteString(fmt.Sprintf("• Ngày %s: %.2f KWh | %s\n",
 			usage.MeasurementDate.Format("02/01/2006"),
 			usage.ConsumptionKWh,
-			c.formatVND(usage.TotalAmount),
+			utils.FormatVND(usage.TotalAmount),
 		))
 	}
 	sb.WriteString(fmt.Sprintf("\n Tổng tiêu thụ: %.2f KWh\n Tổng tiền ước tính: %s",
-		resp.TotalKWh, c.formatVND(resp.TotalAmount),
+		resp.TotalKWh, utils.FormatVND(resp.TotalAmount),
 	))
 
 	msgText := sb.String()
@@ -96,7 +82,7 @@ func (c *ElectricityCommand) GetAll(ctx context.Context, chatID int64) error {
 	return c.telegramClient.SendMessage(ctx, chatID, msgText)
 }
 
-func (c *ElectricityCommand) Sync(ctx context.Context, chatID int64, text string) error {
+func (c *ElectricityCommand) HandleSyncCommand(ctx context.Context, chatID int64, text string) error {
 	parts := strings.Fields(text)
 	var fromDate, toDate string
 
@@ -113,14 +99,10 @@ func (c *ElectricityCommand) Sync(ctx context.Context, chatID int64, text string
 		toDate = now.Format("02/01/2006")
 	}
 
-	req := evnhcmc.DailyPowerUsageRequest{
-		Token:        "",
-		CustomerCode: c.cfg.ApplicationConfig.EVNHCMCConfig.CustomerCode,
-		FromDate:     fromDate,
-		ToDate:       toDate,
-	}
-
-	if err := c.electricityService.FetchAndSyncMonthlyUsage(ctx, req); err != nil {
+	if err := c.electricityService.DailyPowerUsage(ctx, request.GetUsageRequest{
+		FromDate: fromDate,
+		ToDate:   toDate,
+	}); err != nil {
 		c.log.Error("failed_to_sync_evn_data", map[string]any{
 			"from_date": fromDate,
 			"to_date":   toDate,
@@ -151,9 +133,4 @@ func (c *ElectricityCommand) sendChunked(ctx context.Context, chatID int64, full
 		return c.telegramClient.SendMessage(ctx, chatID, currentChunk.String())
 	}
 	return nil
-}
-
-func (c *ElectricityCommand) formatVND(amount float64) string {
-	p := message.NewPrinter(language.Vietnamese)
-	return p.Sprintf("%.0f VND", amount)
 }

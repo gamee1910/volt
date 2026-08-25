@@ -28,19 +28,15 @@ func (r *Router) DefaultHandler() telegram.MessageHandler {
 	return func(ctx context.Context, chatID int64, text string) {
 		switch parseCommand(text) {
 		case "/yesterday":
-			if err := r.electricity.Yesterday(ctx, chatID); err != nil {
+			if err := r.electricity.HandleYesterdayCommand(ctx, chatID); err != nil {
 				r.log.Error("handle_yesterday_failed", map[string]any{"error": err.Error()})
 			}
-		case "/login":
-			if err := r.electricity.Login(ctx, chatID); err != nil {
-				r.log.Error("handle_login_failed", map[string]any{"error": err.Error()})
-			}
 		case "/sync":
-			if err := r.electricity.Sync(ctx, chatID, text); err != nil {
+			if err := r.electricity.HandleSyncCommand(ctx, chatID, text); err != nil {
 				r.log.Error("handle_sync_failed", map[string]any{"error": err.Error()})
 			}
 		case "/get":
-			if err := r.electricity.GetAll(ctx, chatID); err != nil {
+			if err := r.electricity.HandleGetAllCommand(ctx, chatID); err != nil {
 				r.log.Error("handle_get_failed", map[string]any{"error": err.Error()})
 			}
 		case "/start", "/help":

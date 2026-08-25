@@ -31,6 +31,9 @@ func main() {
 		log.Fatal("failed to initialize container", "error", err)
 	}
 
+	container.ElectricityScheduler().Start()
+	defer container.ElectricityScheduler().Stop()
+
 	router := routes.SetupRouter(databaseConnection, container)
 
 	server := &http.Server{

@@ -6,7 +6,6 @@ import (
 	"github.com/gamee1910/volt/config"
 	"github.com/gamee1910/volt/internal/domain/service"
 	"github.com/gamee1910/volt/internal/interfaces/api/handler/request"
-	"github.com/gamee1910/volt/pkg/evnhcmc"
 	pkgjson "github.com/gamee1910/volt/pkg/json"
 )
 
@@ -23,21 +22,6 @@ func NewElectricityHandler(
 	}
 }
 
-func (h *ElectricityHandler) Login(w http.ResponseWriter, r *http.Request) {
-	err := h.electricityService.LoginEVN(
-		r.Context(),
-		h.cfg.ApplicationConfig.EVNHCMCConfig.Username,
-		h.cfg.ApplicationConfig.EVNHCMCConfig.Password,
-	)
-
-	if err != nil {
-		pkgjson.WriteError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	pkgjson.WriteOK(w, map[string]string{"message": "Login successful"})
-}
-
 func (h *ElectricityHandler) SyncFromEVN(w http.ResponseWriter, r *http.Request) {
 	var req request.GetUsageRequest
 
@@ -51,14 +35,7 @@ func (h *ElectricityHandler) SyncFromEVN(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	evnReq := evnhcmc.DailyPowerUsageRequest{
-		Token:        "",
-		CustomerCode: h.cfg.ApplicationConfig.EVNHCMCConfig.CustomerCode,
-		FromDate:     req.FromDate,
-		ToDate:       req.ToDate,
-	}
-
-	err := h.electricityService.FetchAndSyncMonthlyUsage(r.Context(), evnReq)
+	err := h.electricityService.DailyPowerUsage(r.Context(), req)
 	if err != nil {
 		pkgjson.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
