@@ -22,7 +22,7 @@ func NewElectricityHandler(
 	}
 }
 
-func (h *ElectricityHandler) SyncFromEVN(w http.ResponseWriter, r *http.Request) {
+func (h *ElectricityHandler) SyncFromEVNHandler(w http.ResponseWriter, r *http.Request) {
 	var req request.GetUsageRequest
 
 	if err := pkgjson.DecodeBody(r, &req); err != nil {
@@ -44,7 +44,7 @@ func (h *ElectricityHandler) SyncFromEVN(w http.ResponseWriter, r *http.Request)
 	pkgjson.WriteOK(w, map[string]string{"message": "Sync successful"})
 }
 
-func (h *ElectricityHandler) GetAll(w http.ResponseWriter, r *http.Request) {
+func (h *ElectricityHandler) GetAllHandler(w http.ResponseWriter, r *http.Request) {
 	resp, err := h.electricityService.GetAll(r.Context())
 	if err != nil {
 		pkgjson.WriteError(w, http.StatusInternalServerError, err.Error())
@@ -54,7 +54,7 @@ func (h *ElectricityHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	pkgjson.WriteOK(w, resp)
 }
 
-func (h *ElectricityHandler) GetYesterdayUsage(w http.ResponseWriter, r *http.Request) {
+func (h *ElectricityHandler) GetYesterdayUsageHandler(w http.ResponseWriter, r *http.Request) {
 	response, err := h.electricityService.GetYesterDayUsage(r.Context())
 	if err != nil {
 		pkgjson.WriteError(w, http.StatusInternalServerError, err.Error())
