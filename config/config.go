@@ -2,10 +2,12 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"strconv"
 	"time"
 )
+
 
 type Configuration struct {
 	ApplicationConfig ApplicationConfig
@@ -100,16 +102,18 @@ func Load() *Configuration {
 }
 
 func (c DatabaseConfig) DatabaseDSN() string {
-	return fmt.Sprintf(
-		"postgres://%s:%s@%s:%s/%s?sslmode=%s",
-		c.User,
-		c.Password,
-		c.Host,
-		c.Port,
-		c.DatabaseName,
-		c.SSLMode,
-	)
+	u := &url.URL{
+		Scheme: "postgres",
+		User:   url.UserPassword(c.User, c.Password),
+		Host:   fmt.Sprintf("%s:%s", c.Host, c.Port),
+		Path:   c.DatabaseName,
+		RawQuery: url.Values{
+			"sslmode": []string{c.SSLMode},
+		}.Encode(),
+	}
+	return u.String()
 }
+
 
 func GetEnv(key, fallback string) string {
 	value, ok := os.LookupEnv(key)
