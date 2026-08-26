@@ -22,8 +22,7 @@ Volt is a Go-based backend application designed to collect electricity consumpti
                                  |
              +-------------------+-------------------+
              v                                       v
-      EVNHCMC Portal                       PostgreSQL (Supabase)
-    (HTTP Multipart API)                   (Electricity Storage)
+      EVNHCMC Portal                            PostgreSQL
              |                                       |
              +-------------------+-------------------+
                                  |
@@ -42,33 +41,23 @@ The application runs an **in-process cron job** (`0 */12 * * *`) powered by `rob
 ```mermaid
 sequenceDiagram
     participant Main as main
-    participant Container as Container
     participant Scheduler as EVNSyncScheduler
     participant SyncJob as SyncJob
     participant EVNClient as EVNClient (HTTP)
-    participant DB as Supabase PostgreSQL
-
-    Main->>Container: NewContainer(cfg, db, log)
-    Container->>SyncJob: NewSyncJob(cfg, svc, log)
-    Container->>Scheduler: NewEVNSyncScheduler(job, log)
+    participant DB as PostgreSQL
 
     Main->>Scheduler: Start(job)
     Note over Scheduler: go job.Run()
     Note over Scheduler: cron.Start()
 
-    SyncJob->>EVNClient: Login(ctx, user, pass)
-    SyncJob->>EVNClient: GetDailyPowerUsageData(ctx, request)
-    SyncJob->>DB: Upsert(consumption records)
-
-    loop from 0:00 and 12:00 daily
+    loop Every 12h
         Scheduler->>SyncJob: Run()
         SyncJob->>EVNClient: Login + Fetch
         SyncJob->>DB: Upsert
     end
 
-    Note over Main: SIGINT/SIGTERM (Railway restart/deploy)
+    Note over Main: SIGINT/SIGTERM
     Main->>Scheduler: Stop()
-    Note over Scheduler: Wait for current job to finish, then shutdown
 ```
 
 ---
@@ -77,14 +66,13 @@ sequenceDiagram
 
 | Component       | Technology                                                  | Description                                                 |
 |-----------------|-------------------------------------------------------------|-------------------------------------------------------------|
-| **Runtime**     | [Go](https://go.dev/)                                       | HTTP server & business logic                                |
-| **Router**      | [Chi](https://github.com/go-chi/chi)                        | High-performance HTTP router                                |
+| **Runtime**     | [Go](https://go.dev/)                                       | Backend logic                                               |
 | **Database**    | [PostgreSQL](https://www.postgresql.org/)                   | Storage for electricity consumption history                 |
 | **Live Reload** | [Air](https://github.com/air-verse/air)                     | Hot reloading during local development                      |
 | **Environment** | [direnv](https://direnv.net/)                               | Automatic environment variable management                   |
-| **Migrations**  | [golang-migrate](https://github.com/golang-migrate/migrate) | Database migration management                               |
 | **Logging**     | [Zap](https://github.com/uber-go/zap)                       | High-performance logging                                    |
-| **Docker**      | [Docker](https://www.docker.com/)                           | Containerization                                            |
+| **Telegram**    | [Telegram Bot](https://core.telegram.org/bots)              | Real-time electricity consumption alerts                    |
+| **Cron**        | [Cron](https://github.com/robfig/cron)                      | Scheduled jobs                                              |
 
 ---
 
@@ -94,46 +82,31 @@ sequenceDiagram
 
 - Go 1.22+
 - PostgreSQL database
-- [direnv](https://direnv.net/) (optional, for auto-loading `.envrc`)
-- [Air](https://github.com/air-verse/air) (optional, for live reload)
+- [direnv](https://direnv.net/) (optional)
+- [Air](https://github.com/air-verse/air) (optional)
 
 ### Environment Configuration
 
-1. Copy `.envrc.example` to `.envrc`:
+1. Copy `.env.example` to `.env`:
 
    ```bash
-   cp .envrc.example .envrc
+   cp .env.example .env
    ```
 
-2. Fill in your environment parameters in `.envrc`:
+2. Fill in your environment parameters:
 
     ```bash
     export EVN_USERNAME="your_username"
     export EVN_PASSWORD="your_password"
-    export EVN_CUSTOMER="your_customer_code"
-    export EVN_BASE_URL=""
-    export EVN_LOGIN_API=""
-    export EVN_ELECTRICITY_CONSUMPTION_API=""
+    export EVN_CUSTOMER_CODE="your_customer_code"
     
     export TELEGRAM_API_KEY=""
-    
-    export DB_HOST="localhost"
-    export DB_PORT="5432"
-    export DB_USER="admin"
-    export DB_PASS="password"
-    export DB_NAME="volt"
     ```
 
-> [!NOTE]
-> `EVN_BASE_URL`, `EVN_LOGIN_API`, and `EVN_ELECTRICITY_CONSUMPTION_API` are required for EVNHCMC API integration.
->
-> - **Contact**: Please reach out to the maintainer if you need assistance regarding API endpoints.
->   - **Disclaimer**: The maintainer assumes no responsibility or liability for any misuse, service disruption, or non-compliance.
-
-3. Allow `direnv` to load variables automatically:
+3. Load variables:
 
    ```bash
-   direnv allow
+   source .env
    ```
 
 ### Running Locally
@@ -146,7 +119,7 @@ air
 
 ### Running Tests
 
-Execute unit tests across all packages:
+Execute unit tests:
 
 ```bash
 go test ./...
