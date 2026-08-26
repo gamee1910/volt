@@ -19,6 +19,7 @@ jobs:
 
       - name: Run sync
         env:
+          TELEGRAM_API_KEY: ${{ secrets.TELEGRAM_API_KEY }}
           EVN_USERNAME: ${{ secrets.EVN_USERNAME }}
           EVN_PASSWORD: ${{ secrets.EVN_PASSWORD }}
           EVN_BASE_URL: ${{ secrets.EVN_BASE_URL }}
