@@ -62,13 +62,18 @@ func (s *electricityService) DailyPowerUsage(
 			kwh = item.TotalIndex
 		}
 
-		parseDate, err := time.Parse("02/01/2006", item.FullDate)
+		location, err := utils.LoadVietnamTimezone()
+		if err != nil {
+			return err
+		}
+
+		parseEVNDate, err := utils.ParseEVNDate(item.FullDate, location)
 		if err != nil {
 			return err
 		}
 
 		consumption := &entity.ElectricityConsumption{
-			MeasurementDate: parseDate,
+			MeasurementDate: parseEVNDate,
 			ConsumptionKWh:  kwh,
 		}
 		if err := s.electricityRepository.Upsert(ctx, consumption); err != nil {

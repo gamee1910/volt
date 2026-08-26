@@ -6,6 +6,7 @@ import (
 
 	"github.com/gamee1910/volt/internal/interfaces/worker"
 	"github.com/gamee1910/volt/pkg/logger"
+	"github.com/gamee1910/volt/pkg/utils"
 	"github.com/robfig/cron/v3"
 )
 
@@ -22,11 +23,18 @@ type ElectricityScheduler struct {
 func NewElectricityScheduler(
 	worker *worker.ElectricityWorker,
 	log *logger.Logger,
-) (*ElectricityScheduler, error) {
+) (
+	*ElectricityScheduler,
+	error,
+) {
+	location, err := utils.LoadVietnamTimezone()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load location: %w", err)
+	}
+	option := cron.WithLocation(location)
+	c := cron.New(option)
 
-	c := cron.New()
-
-	_, err := c.AddFunc(every12HoursCron, func() {
+	_, err = c.AddFunc(every12HoursCron, func() {
 		if err := worker.Run(context.Background()); err != nil {
 			log.Error("eletricity_sync_job: failed", "error", err.Error())
 			return
