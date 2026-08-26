@@ -1,0 +1,34 @@
+name: Sync Electricity Data
+
+on:
+  schedule:
+    - cron: '0 */12 * * *'
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run sync
+        env:
+          EVN_USERNAME: ${{ secrets.EVN_USERNAME }}
+          EVN_PASSWORD: ${{ secrets.EVN_PASSWORD }}
+          EVN_BASE_URL: ${{ secrets.EVN_BASE_URL }}
+          EVN_LOGIN_API: ${{ secrets.EVN_LOGIN_API }}
+          EVN_ELECTRICITY_CONSUMPTION_API: ${{ secrets.EVN_ELECTRICITY_CONSUMPTION_API }}
+          EVN_CUSTOMER: ${{ secrets.EVN_CUSTOMER }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASS }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_SSL_MODE: require
+        run: go run ./cmd/cli/sync/
