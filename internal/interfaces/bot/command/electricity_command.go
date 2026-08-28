@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/gamee1910/volt/config"
+	"github.com/gamee1910/volt/internal/application/types"
 	"github.com/gamee1910/volt/internal/domain/service"
-	"github.com/gamee1910/volt/internal/interfaces/api/handler/request"
 	"github.com/gamee1910/volt/pkg/logger"
 	"github.com/gamee1910/volt/pkg/telegram"
 	"github.com/gamee1910/volt/pkg/utils"
@@ -99,7 +99,7 @@ func (c *ElectricityCommand) HandleSyncCommand(ctx context.Context, chatID int64
 		toDate = now.Format("02/01/2006")
 	}
 
-	if err := c.electricityService.DailyPowerUsage(ctx, request.GetUsageRequest{
+	if err := c.electricityService.DailyPowerUsage(ctx, types.GetUsageParam{
 		FromDate: fromDate,
 		ToDate:   toDate,
 	}); err != nil {

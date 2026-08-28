@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gamee1910/volt/config"
+	"github.com/gamee1910/volt/internal/application/types"
 	"github.com/gamee1910/volt/internal/domain/service"
 	"github.com/gamee1910/volt/internal/interfaces/api/handler/request"
 	pkgjson "github.com/gamee1910/volt/pkg/json"
@@ -35,7 +36,10 @@ func (h *ElectricityHandler) SyncFromEVNHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	err := h.electricityService.DailyPowerUsage(r.Context(), req)
+	err := h.electricityService.DailyPowerUsage(r.Context(), types.GetUsageParam{
+		FromDate: req.FromDate,
+		ToDate:   req.ToDate,
+	})
 	if err != nil {
 		pkgjson.WriteError(w, http.StatusInternalServerError, err.Error())
 		return

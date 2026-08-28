@@ -6,11 +6,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/gamee1910/volt/internal/application/types"
 	"github.com/gamee1910/volt/internal/domain/entity"
 	"github.com/gamee1910/volt/internal/domain/repository"
 	"github.com/gamee1910/volt/internal/domain/service"
-	"github.com/gamee1910/volt/internal/interfaces/api/handler/request"
-	"github.com/gamee1910/volt/internal/interfaces/api/handler/response"
 	"github.com/gamee1910/volt/pkg/evnhcmc"
 	"github.com/gamee1910/volt/pkg/logger"
 	"github.com/gamee1910/volt/pkg/utils"
@@ -35,7 +34,7 @@ func NewElectricityService(
 }
 
 func (s *electricityService) DailyPowerUsage(
-	ctx context.Context, req request.GetUsageRequest,
+	ctx context.Context, req types.GetUsageParam,
 ) error {
 	resp, err := s.evnClient.GetDailyPowerUsageData(
 		ctx,
@@ -90,16 +89,16 @@ func (s *electricityService) DailyPowerUsage(
 
 func (s *electricityService) GetAll(
 	ctx context.Context,
-) (*response.ElectricityResponse, error) {
+) (*types.ElectricitySummary, error) {
 	resp, err := s.electricityRepository.FetchAll(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch: %w", err)
 	}
 
 	var totalKWh float64
-	var responseEntities []*response.ElectricityConsumptionResponse
+	var responseEntities []*types.ElectricityConsumption
 	for _, v := range resp {
-		var responseEntity = &response.ElectricityConsumptionResponse{
+		var responseEntity = &types.ElectricityConsumption{
 			MeasurementDate: v.MeasurementDate,
 			ConsumptionKWh:  v.ConsumptionKWh,
 			TotalAmount:     utils.CalculateElectricityBill(v.ConsumptionKWh),
@@ -110,7 +109,7 @@ func (s *electricityService) GetAll(
 	}
 	totalAmount := utils.CalculateElectricityBill(totalKWh)
 
-	return &response.ElectricityResponse{
+	return &types.ElectricitySummary{
 		TotalKWh:    totalKWh,
 		TotalAmount: totalAmount,
 		Data:        responseEntities,
@@ -119,7 +118,7 @@ func (s *electricityService) GetAll(
 
 func (s *electricityService) GetYesterDayUsage(
 	ctx context.Context,
-) (*response.ElectricityConsumptionResponse, error) {
+) (*types.ElectricityConsumption, error) {
 	loc, err := utils.LoadVietnamTimezone()
 	if err != nil {
 		return nil, err
@@ -145,7 +144,7 @@ func (s *electricityService) GetYesterDayUsage(
 
 	totalAmount := utils.CalculateElectricityBill(totalKWh)
 
-	return &response.ElectricityConsumptionResponse{
+	return &types.ElectricityConsumption{
 		MeasurementDate: consumption.MeasurementDate,
 		ConsumptionKWh:  consumption.ConsumptionKWh,
 		TotalAmount:     totalAmount,
