@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/gamee1910/volt/internal/application/dto"
 	"github.com/gamee1910/volt/internal/domain/service"
+	"github.com/gamee1910/volt/internal/interfaces/api/handler/request"
 	"github.com/gamee1910/volt/pkg/logger"
 	"github.com/gamee1910/volt/pkg/utils"
 )
@@ -34,7 +34,7 @@ func (w *ElectricityWorker) Run(ctx context.Context) error {
 	now := time.Now().In(location)
 	firstDayOfMonth := utils.GetFirstDayOfMonth(now, location)
 
-	return w.electricityService.DailyPowerUsage(ctx, dto.GetUsageParam{
+	return w.electricityService.DailyPowerUsage(ctx, request.GetUsageRequest{
 		FromDate: utils.FormatEVNDate(firstDayOfMonth),
 		ToDate:   utils.FormatEVNDate(now),
 	})
