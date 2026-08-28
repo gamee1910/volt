@@ -3,12 +3,11 @@ package service
 import (
 	"context"
 
-	"github.com/gamee1910/volt/internal/interfaces/api/handler/request"
-	"github.com/gamee1910/volt/internal/interfaces/api/handler/response"
+	"github.com/gamee1910/volt/internal/application/dto"
 )
 
 type ElectricityService interface {
-	DailyPowerUsage(ctx context.Context, req request.GetUsageRequest) error
-	GetAll(ctx context.Context) (*response.ElectricityResponse, error)
-	GetYesterDayUsage(ctx context.Context) (*response.ElectricityConsumptionResponse, error)
+	DailyPowerUsage(ctx context.Context, param dto.GetUsageParam) error
+	GetAll(ctx context.Context) (*dto.ElectricitySummaryDTO, error)
+	GetYesterDayUsage(ctx context.Context) (*dto.ElectricityConsumptionDTO, error)
 }
