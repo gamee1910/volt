@@ -7,39 +7,40 @@ import (
 	"time"
 
 	"github.com/gamee1910/volt/config"
-	"github.com/gamee1910/volt/internal/domain/service"
-	"github.com/gamee1910/volt/internal/interfaces/api/handler/request"
+	"github.com/gamee1910/volt/internal/application"
+	"github.com/gamee1910/volt/internal/application/command"
+	"github.com/gamee1910/volt/internal/application/query"
+	"github.com/gamee1910/volt/internal/common/utils"
 	"github.com/gamee1910/volt/pkg/logger"
 	"github.com/gamee1910/volt/pkg/telegram"
-	"github.com/gamee1910/volt/pkg/utils"
 )
 
 type ElectricityCommand struct {
-	cfg                *config.Configuration
-	log                *logger.Logger
-	telegramClient     telegram.TelegramClient
-	electricityService service.ElectricityService
+	cfg            *config.Configuration
+	log            *logger.Logger
+	telegramClient telegram.TelegramClient
+	app            *application.Application
 }
 
 func NewElectricityCommand(
 	cfg *config.Configuration,
 	log *logger.Logger,
 	telegramClient telegram.TelegramClient,
-	electricityService service.ElectricityService,
+	app *application.Application,
 ) *ElectricityCommand {
 	return &ElectricityCommand{
-		cfg:                cfg,
-		log:                log,
-		telegramClient:     telegramClient,
-		electricityService: electricityService,
+		cfg:            cfg,
+		log:            log,
+		telegramClient: telegramClient,
+		app:            app,
 	}
 }
 
 func (c *ElectricityCommand) HandleYesterdayCommand(ctx context.Context, chatID int64) error {
-	usage, err := c.electricityService.GetYesterDayUsage(ctx)
+	usage, err := c.app.Queries.YesterdayUsage.Handle(ctx, query.YesterdayUsageQuery{})
 	if err != nil {
 		c.log.Error("failed_to_get_yesterday_usage", map[string]any{"error": err.Error()})
-		return c.telegramClient.SendMessage(ctx, chatID, "Failed to fetch data: "+err.Error())
+		return c.telegramClient.SendMessage(ctx, chatID, "failed to fetch data: "+err.Error())
 	}
 
 	msg := fmt.Sprintf(
@@ -52,7 +53,7 @@ func (c *ElectricityCommand) HandleYesterdayCommand(ctx context.Context, chatID 
 }
 
 func (c *ElectricityCommand) HandleGetAllCommand(ctx context.Context, chatID int64) error {
-	resp, err := c.electricityService.GetAll(ctx)
+	resp, err := c.app.Queries.AllElectricity.Handle(ctx, query.AllElectricityQuery{})
 	if err != nil {
 		c.log.Error("failed_to_get_all_usage", map[string]any{"error": err.Error()})
 		return c.telegramClient.SendMessage(ctx, chatID, "Failed to fetch data: "+err.Error())
@@ -99,7 +100,7 @@ func (c *ElectricityCommand) HandleSyncCommand(ctx context.Context, chatID int64
 		toDate = now.Format("02/01/2006")
 	}
 
-	if err := c.electricityService.DailyPowerUsage(ctx, request.GetUsageRequest{
+	if err := c.app.Commands.SyncElectricity.Handle(ctx, command.SyncElectricityCommand{
 		FromDate: fromDate,
 		ToDate:   toDate,
 	}); err != nil {
