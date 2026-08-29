@@ -6,12 +6,11 @@ import (
 
 	"github.com/gamee1910/volt/config"
 	"github.com/gamee1910/volt/internal/application"
-	"github.com/gamee1910/volt/internal/domain/repository"
-	"github.com/gamee1910/volt/internal/domain/service"
+	"github.com/gamee1910/volt/internal/common/metrics"
 	"github.com/gamee1910/volt/internal/infrastructure/persistences/postgres"
 	"github.com/gamee1910/volt/internal/infrastructure/scheduler"
 	"github.com/gamee1910/volt/internal/interfaces/api/handler"
-	"github.com/gamee1910/volt/internal/interfaces/bot/command"
+	botcommand "github.com/gamee1910/volt/internal/interfaces/bot/command"
 	"github.com/gamee1910/volt/internal/interfaces/bot/routes"
 	"github.com/gamee1910/volt/internal/interfaces/worker"
 	"github.com/gamee1910/volt/pkg/evnhcmc"
@@ -21,26 +20,14 @@ import (
 
 type Container struct {
 	configuration *config.Configuration
-	database      *sql.DB
 	logger        *logger.Logger
 
-	// Clients
 	telegramClient telegram.TelegramClient
 	evnClient      evnhcmc.EVNClient
 
-	// Handler
-	electricityHandler *handler.ElectricityHandler
-
-	// Command
-	electricityCommand *command.ElectricityCommand
-
-	// Bot
-	botRouter *routes.Router
-
-	//Worker
-	electricityWorker *worker.ElectricityWorker
-
-	//Scheduler
+	electricityHandler   *handler.ElectricityHandler
+	electricityCommand   *botcommand.ElectricityCommand
+	electricityWorker    *worker.ElectricityWorker
 	electricityScheduler *scheduler.ElectricityScheduler
 }
 
@@ -48,19 +35,11 @@ func (c *Container) TelegramClient() telegram.TelegramClient {
 	return c.telegramClient
 }
 
-func (c *Container) EVNClient() evnhcmc.EVNClient {
-	return c.evnClient
-}
-
 func (c *Container) ElectricityHandler() *handler.ElectricityHandler {
 	return c.electricityHandler
 }
 
-func (c *Container) BotRouter() *routes.Router {
-	return c.botRouter
-}
-
-func (c *Container) ElectricityCommand() *command.ElectricityCommand {
+func (c *Container) ElectricityCommand() *botcommand.ElectricityCommand {
 	return c.electricityCommand
 }
 
@@ -77,117 +56,74 @@ func NewContainer(
 	db *sql.DB,
 	log *logger.Logger,
 ) (*Container, error) {
-	client, err := initClients(cfg, log)
+	telegramClient, evnClient, err := initClients(cfg, log)
 	if err != nil {
 		return nil, err
 	}
 
-	container := &Container{
-		configuration: cfg,
-		database:      db,
-		logger:        log,
-
-		telegramClient: client.telegramClient,
-		evnClient:      client.evnClient,
+	c := &Container{
+		configuration:  cfg,
+		logger:         log,
+		telegramClient: telegramClient,
+		evnClient:      evnClient,
 	}
 
-	container.initializerHandler()
-	return container, nil
+	if err := c.wire(db); err != nil {
+		return nil, err
+	}
+
+	return c, nil
 }
 
-func (c *Container) initializerHandler() {
-	repositories := c.initRepositories()
-	services := c.initServices(repositories)
+func (c *Container) wire(db *sql.DB) error {
+	repo := postgres.NewElectricityRepository(db)
+	metricClient := metrics.NewStatsClient(c.logger)
 
-	c.electricityHandler = handler.NewElectricityHandler(
-		services.electricityService,
-		c.configuration,
-	)
-
-	c.electricityWorker = worker.NewElectricityWorker(
-		services.electricityService,
+	app := application.NewApplication(
+		c.evnClient,
+		repo,
 		c.logger,
+		metricClient,
 	)
 
-	scheduler, err := scheduler.NewElectricityScheduler(
-		c.electricityWorker,
-		c.logger,
-	)
+	c.electricityHandler = handler.NewElectricityHandler(&app, c.configuration)
+	c.electricityWorker = worker.NewElectricityWorker(&app, c.logger)
+
+	sched, err := scheduler.NewElectricityScheduler(c.electricityWorker, c.logger)
 	if err != nil {
-		c.logger.Fatal("failed to create scheduler", "error", err)
+		return fmt.Errorf("failed to create scheduler: %w", err)
 	}
+	c.electricityScheduler = sched
 
-	c.electricityScheduler = scheduler
-
-	c.initializeCommand(services)
-}
-
-func (c *Container) initializeCommand(services services) {
-	c.electricityCommand = command.NewElectricityCommand(
+	c.electricityCommand = botcommand.NewElectricityCommand(
 		c.configuration,
 		c.logger,
 		c.telegramClient,
-		services.electricityService,
+		&app,
 	)
 
-	c.botRouter = routes.NewRouter(
-		c.logger,
-		c.telegramClient,
-		c.electricityCommand,
-	)
+	botRouter := routes.NewRouter(c.logger, c.telegramClient, c.electricityCommand)
+	c.telegramClient.SetMessageHandler(botRouter.DefaultHandler())
 
-	c.telegramClient.SetMessageHandler(
-		c.botRouter.DefaultHandler(),
-	)
+	return nil
 }
 
-type repositories struct {
-	electricityRepository repository.ElectricityRepository
-}
-
-func (c *Container) initRepositories() repositories {
-	return repositories{
-		electricityRepository: postgres.NewElectricityRepository(c.database),
-	}
-}
-
-type services struct {
-	electricityService service.ElectricityService
-}
-
-func (c *Container) initServices(r repositories) services {
-	return services{
-		electricityService: application.NewElectricityService(r.electricityRepository, c.evnClient, c.logger),
-	}
-}
-
-type clients struct {
-	telegramClient telegram.TelegramClient
-	evnClient      evnhcmc.EVNClient
-}
-
-func initClients(cfg *config.Configuration, log *logger.Logger) (clients, error) {
+func initClients(
+	cfg *config.Configuration,
+	log *logger.Logger,
+) (telegram.TelegramClient, evnhcmc.EVNClient, error) {
 	telegramClient, err := telegram.NewTelegramClient(
 		cfg.ApplicationConfig.TelegramConfig.TelegramAPIKey,
 		log,
 	)
 	if err != nil {
-		return clients{}, fmt.Errorf(
-			"failed to initialize telegram client: %w",
-			err,
-		)
+		return nil, nil, fmt.Errorf("failed to initialize telegram client: %w", err)
 	}
 
 	evnClient, err := evnhcmc.NewEVNClient(cfg, log)
 	if err != nil {
-		return clients{}, fmt.Errorf(
-			"failed to initialize evn client: %w",
-			err,
-		)
+		return nil, nil, fmt.Errorf("failed to initialize evn client: %w", err)
 	}
 
-	return clients{
-		telegramClient: telegramClient,
-		evnClient:      evnClient,
-	}, nil
+	return telegramClient, evnClient, nil
 }

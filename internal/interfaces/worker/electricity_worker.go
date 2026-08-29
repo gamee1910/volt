@@ -4,24 +4,24 @@ import (
 	"context"
 	"time"
 
-	"github.com/gamee1910/volt/internal/application/types"
-	"github.com/gamee1910/volt/internal/domain/service"
+	"github.com/gamee1910/volt/internal/application"
+	"github.com/gamee1910/volt/internal/application/command"
+	"github.com/gamee1910/volt/internal/common/utils"
 	"github.com/gamee1910/volt/pkg/logger"
-	"github.com/gamee1910/volt/pkg/utils"
 )
 
 type ElectricityWorker struct {
-	electricityService service.ElectricityService
-	log                *logger.Logger
+	app *application.Application
+	log *logger.Logger
 }
 
 func NewElectricityWorker(
-	electricityService service.ElectricityService,
+	app *application.Application,
 	log *logger.Logger,
 ) *ElectricityWorker {
 	return &ElectricityWorker{
-		electricityService: electricityService,
-		log:                log,
+		app: app,
+		log: log,
 	}
 }
 
@@ -34,7 +34,7 @@ func (w *ElectricityWorker) Run(ctx context.Context) error {
 	now := time.Now().In(location)
 	firstDayOfMonth := utils.GetFirstDayOfMonth(now, location)
 
-	return w.electricityService.DailyPowerUsage(ctx, types.GetUsageParam{
+	return w.app.Commands.SyncElectricity.Handle(ctx, command.SyncElectricityCommand{
 		FromDate: utils.FormatEVNDate(firstDayOfMonth),
 		ToDate:   utils.FormatEVNDate(now),
 	})

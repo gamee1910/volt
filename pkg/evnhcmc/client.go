@@ -3,6 +3,7 @@ package evnhcmc
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -12,7 +13,6 @@ import (
 	"time"
 
 	"github.com/gamee1910/volt/config"
-	pkgjson "github.com/gamee1910/volt/pkg/json"
 	"github.com/gamee1910/volt/pkg/logger"
 )
 
@@ -161,7 +161,7 @@ func (c *evnClient) fetchDailyPowerUsage(
 	}
 
 	var response DailyPowerUsageResponse
-	if err := pkgjson.Decode(body, &response); err != nil {
+	if err := json.Unmarshal(body, &response); err != nil {
 		return nil, fmt.Errorf("parse daily power usage response: %w", err)
 	}
 
