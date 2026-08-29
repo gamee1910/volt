@@ -31,7 +31,7 @@ func NewSyncElectricityHandler(
 	logger *logger.Logger,
 	metricClient decorator.MetricClient,
 ) decorator.CommandHandler[SyncElectricityCommand] {
-	return decorator.ApplyCommandDecorators[SyncElectricityCommand](
+	return decorator.ApplyCommandDecorators(
 		syncElectricityHandler{
 			repo:      repo,
 			evnClient: evnClient,

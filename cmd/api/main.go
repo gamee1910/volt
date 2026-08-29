@@ -50,6 +50,8 @@ func main() {
 		})
 	}
 
+	container.ElectricityScheduler().Start()
+
 	go func() {
 		log.Infof(
 			"starting application [%s] port [%s] env [%s]",
@@ -73,7 +75,7 @@ func main() {
 			log.Fatal(err)
 		}
 	}()
-	gracefulShutdown(server, log)
+	gracefulShutdown(server, container, log)
 }
 
 func closeDB(db *sql.DB, log *logger.Logger) {
@@ -82,13 +84,15 @@ func closeDB(db *sql.DB, log *logger.Logger) {
 	}
 }
 
-func gracefulShutdown(server *http.Server, log *logger.Logger) {
+func gracefulShutdown(server *http.Server, container *di.Container, log *logger.Logger) {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 
 	<-stop
 
 	log.Info("shutting down server")
+
+	container.ElectricityScheduler().Stop()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

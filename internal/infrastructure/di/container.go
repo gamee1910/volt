@@ -8,11 +8,10 @@ import (
 	"github.com/gamee1910/volt/internal/application"
 	"github.com/gamee1910/volt/internal/common/metrics"
 	"github.com/gamee1910/volt/internal/infrastructure/persistences/postgres"
-	"github.com/gamee1910/volt/internal/infrastructure/scheduler"
 	"github.com/gamee1910/volt/internal/interfaces/api/handler"
-	botcommand "github.com/gamee1910/volt/internal/interfaces/bot/command"
+	"github.com/gamee1910/volt/internal/interfaces/bot/command"
 	"github.com/gamee1910/volt/internal/interfaces/bot/routes"
-	"github.com/gamee1910/volt/internal/interfaces/worker"
+	"github.com/gamee1910/volt/internal/interfaces/scheduler"
 	"github.com/gamee1910/volt/pkg/evnhcmc"
 	"github.com/gamee1910/volt/pkg/logger"
 	"github.com/gamee1910/volt/pkg/telegram"
@@ -22,13 +21,17 @@ type Container struct {
 	configuration *config.Configuration
 	logger        *logger.Logger
 
+	app            *application.Application
 	telegramClient telegram.TelegramClient
 	evnClient      evnhcmc.EVNClient
 
 	electricityHandler   *handler.ElectricityHandler
-	electricityCommand   *botcommand.ElectricityCommand
-	electricityWorker    *worker.ElectricityWorker
+	electricityCommand   *command.ElectricityCommand
 	electricityScheduler *scheduler.ElectricityScheduler
+}
+
+func (c *Container) App() *application.Application {
+	return c.app
 }
 
 func (c *Container) TelegramClient() telegram.TelegramClient {
@@ -39,12 +42,8 @@ func (c *Container) ElectricityHandler() *handler.ElectricityHandler {
 	return c.electricityHandler
 }
 
-func (c *Container) ElectricityCommand() *botcommand.ElectricityCommand {
+func (c *Container) ElectricityCommand() *command.ElectricityCommand {
 	return c.electricityCommand
-}
-
-func (c *Container) ElectricityWorker() *worker.ElectricityWorker {
-	return c.electricityWorker
 }
 
 func (c *Container) ElectricityScheduler() *scheduler.ElectricityScheduler {
@@ -85,17 +84,17 @@ func (c *Container) wire(db *sql.DB) error {
 		c.logger,
 		metricClient,
 	)
+	c.app = &app
 
 	c.electricityHandler = handler.NewElectricityHandler(&app, c.configuration)
-	c.electricityWorker = worker.NewElectricityWorker(&app, c.logger)
 
-	sched, err := scheduler.NewElectricityScheduler(c.electricityWorker, c.logger)
+	sched, err := scheduler.NewElectricityScheduler(&app, c.logger)
 	if err != nil {
 		return fmt.Errorf("failed to create scheduler: %w", err)
 	}
 	c.electricityScheduler = sched
 
-	c.electricityCommand = botcommand.NewElectricityCommand(
+	c.electricityCommand = command.NewElectricityCommand(
 		c.configuration,
 		c.logger,
 		c.telegramClient,
