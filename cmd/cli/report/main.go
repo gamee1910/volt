@@ -28,9 +28,12 @@ func main() {
 		log.Fatalf("[report] container error: ", "error", err)
 	}
 
-	chatID, err := fetchFirstChatID(cfg.ApplicationConfig.TelegramConfig.TelegramAPIKey)
-	if err != nil {
-		log.Fatalf("[report] failed to get chat ID", "error", err)
+	chatID := cfg.ApplicationConfig.TelegramConfig.ChatID
+	if chatID == 0 {
+		chatID, err = fetchFirstChatID(cfg.ApplicationConfig.TelegramConfig.TelegramAPIKey)
+		if err != nil {
+			log.Fatalf("[report] failed to get chat ID (set TELEGRAM_CHAT_ID): %v", err)
+		}
 	}
 
 	if err := container.ElectricityCommand().HandleYesterdayCommand(ctx, chatID); err != nil {

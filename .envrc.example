@@ -5,6 +5,7 @@ export EVN_LOGIN_API=""
 export EVN_ELECTRICITY_CONSUMPTION_API=""
 
 export TELEGRAM_API_KEY=""
+export TELEGRAM_CHAT_ID=""
 
 export APP_NAME=""
 export APP_ENV=""

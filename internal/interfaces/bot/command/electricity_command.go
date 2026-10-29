@@ -115,6 +115,20 @@ func (c *ElectricityCommand) HandleSyncCommand(ctx context.Context, chatID int64
 	return c.telegramClient.SendMessage(ctx, chatID, fmt.Sprintf("Đồng bộ dữ liệu thành công từ %s đến %s!", fromDate, toDate))
 }
 
+// NotifySyncResult sends the scheduled sync outcome to TELEGRAM_CHAT_ID:
+// yesterday's report on success, an error message on failure.
+// It does nothing when no chat ID is configured.
+func (c *ElectricityCommand) NotifySyncResult(ctx context.Context, syncErr error) error {
+	chatID := c.cfg.ApplicationConfig.TelegramConfig.ChatID
+	if chatID == 0 {
+		return nil
+	}
+	if syncErr != nil {
+		return c.telegramClient.SendMessage(ctx, chatID, "Đồng bộ dữ liệu EVN thất bại: "+syncErr.Error())
+	}
+	return c.HandleYesterdayCommand(ctx, chatID)
+}
+
 func (c *ElectricityCommand) sendChunked(ctx context.Context, chatID int64, fullText string) error {
 	lines := strings.Split(fullText, "\n")
 	var currentChunk strings.Builder

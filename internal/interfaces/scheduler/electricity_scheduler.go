@@ -16,15 +16,22 @@ const (
 	every12HoursCron = "0 */12 * * *"
 )
 
+// SyncNotifier is told the result of each scheduled sync.
+type SyncNotifier interface {
+	NotifySyncResult(ctx context.Context, syncErr error) error
+}
+
 type ElectricityScheduler struct {
-	cron *cron.Cron
-	app  *application.Application
-	log  *logger.Logger
+	cron     *cron.Cron
+	app      *application.Application
+	log      *logger.Logger
+	notifier SyncNotifier
 }
 
 func NewElectricityScheduler(
 	app *application.Application,
 	log *logger.Logger,
+	notifier SyncNotifier,
 ) (*ElectricityScheduler, error) {
 	location, err := utils.LoadVietnamTimezone()
 	if err != nil {
@@ -34,17 +41,21 @@ func NewElectricityScheduler(
 	c := cron.New(option)
 
 	s := &ElectricityScheduler{
-		cron: c,
-		app:  app,
-		log:  log,
+		cron:     c,
+		app:      app,
+		log:      log,
+		notifier: notifier,
 	}
 
 	_, err = c.AddFunc(every12HoursCron, func() {
-		if err := s.sync(context.Background()); err != nil {
-			log.Error("electricity_sync_job: failed", "error", err.Error())
-			return
+		ctx := context.Background()
+		syncErr := s.sync(ctx)
+		if syncErr != nil {
+			log.Error("electricity_sync_job: failed", "error", syncErr.Error())
+		} else {
+			log.Info("electricity_sync_job: success")
 		}
-		log.Info("electricity_sync_job: success")
+		s.notify(ctx, syncErr)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("register electricity scheduler cron error: %w", err)
@@ -66,6 +77,15 @@ func (s *ElectricityScheduler) sync(ctx context.Context) error {
 		FromDate: utils.FormatEVNDate(firstDayOfMonth),
 		ToDate:   utils.FormatEVNDate(now),
 	})
+}
+
+func (s *ElectricityScheduler) notify(ctx context.Context, syncErr error) {
+	if s.notifier == nil {
+		return
+	}
+	if err := s.notifier.NotifySyncResult(ctx, syncErr); err != nil {
+		s.log.Error("electricity_sync_job: notify failed", "error", err.Error())
+	}
 }
 
 func (s *ElectricityScheduler) Start() {
