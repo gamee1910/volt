@@ -8,7 +8,6 @@ import (
 	"time"
 )
 
-
 type Configuration struct {
 	ApplicationConfig ApplicationConfig
 	DatabaseConfig    DatabaseConfig
@@ -45,6 +44,8 @@ type EVNHCMCConfig struct {
 
 type TelegramConfig struct {
 	TelegramAPIKey string
+	// ChatID receives scheduled reports. 0 disables them.
+	ChatID int64
 }
 
 type DatabaseConfig struct {
@@ -75,6 +76,7 @@ func Load() *Configuration {
 			},
 			TelegramConfig: TelegramConfig{
 				TelegramAPIKey: GetEnv("TELEGRAM_API_KEY", ""),
+				ChatID:         GetEnvInt64("TELEGRAM_CHAT_ID", 0),
 			},
 		},
 		DatabaseConfig: DatabaseConfig{
@@ -114,7 +116,6 @@ func (c DatabaseConfig) DatabaseDSN() string {
 	return u.String()
 }
 
-
 func GetEnv(key, fallback string) string {
 	value, ok := os.LookupEnv(key)
 	if !ok {
@@ -129,6 +130,18 @@ func GetEnvInt(key string, fallback int) int {
 		return fallback
 	}
 	valAsInt, err := strconv.Atoi(val)
+	if err != nil {
+		return fallback
+	}
+	return valAsInt
+}
+
+func GetEnvInt64(key string, fallback int64) int64 {
+	val, ok := os.LookupEnv(key)
+	if !ok {
+		return fallback
+	}
+	valAsInt, err := strconv.ParseInt(val, 10, 64)
 	if err != nil {
 		return fallback
 	}

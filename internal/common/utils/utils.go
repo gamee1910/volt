@@ -3,6 +3,8 @@ package utils
 import (
 	"fmt"
 	"time"
+	// Embed timezone data so Asia/Ho_Chi_Minh loads on images without tzdata (e.g. alpine).
+	_ "time/tzdata"
 
 	"golang.org/x/text/language"
 	"golang.org/x/text/message"
