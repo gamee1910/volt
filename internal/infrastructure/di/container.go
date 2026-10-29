@@ -88,18 +88,18 @@ func (c *Container) wire(db *sql.DB) error {
 
 	c.electricityHandler = handler.NewElectricityHandler(&app, c.configuration)
 
-	sched, err := scheduler.NewElectricityScheduler(&app, c.logger)
-	if err != nil {
-		return fmt.Errorf("failed to create scheduler: %w", err)
-	}
-	c.electricityScheduler = sched
-
 	c.electricityCommand = command.NewElectricityCommand(
 		c.configuration,
 		c.logger,
 		c.telegramClient,
 		&app,
 	)
+
+	sched, err := scheduler.NewElectricityScheduler(&app, c.logger, c.electricityCommand)
+	if err != nil {
+		return fmt.Errorf("failed to create scheduler: %w", err)
+	}
+	c.electricityScheduler = sched
 
 	botRouter := routes.NewRouter(c.logger, c.telegramClient, c.electricityCommand)
 	c.telegramClient.SetMessageHandler(botRouter.DefaultHandler())
