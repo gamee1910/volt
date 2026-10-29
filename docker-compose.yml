@@ -1,16 +1,75 @@
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   db:
-    image: postgres:16.3
+    image: postgres:16-alpine
     container_name: volt_db
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: volt
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password
+      POSTGRES_DB: ${DB_NAME:-volt}
+      POSTGRES_USER: ${DB_USER:-admin}
+      POSTGRES_PASSWORD: ${DB_PASS:-password}
+    # Small data set: keep WAL small so it fits a 2 GB disk.
+    command: ["postgres", "-c", "max_wal_size=128MB", "-c", "min_wal_size=32MB"]
     volumes:
       - db-data:/var/lib/postgresql/data
-      - ./scripts:/docker-entrypoint-initdb.d
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    logging: *logging
+
+  migrate:
+    image: migrate/migrate:v4.18.1
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./migrations:/migrations:ro
+    command:
+      - -path=/migrations
+      - -database=postgres://${DB_USER:-admin}:${DB_PASS:-password}@db:5432/${DB_NAME:-volt}?sslmode=disable
+      - up
+    logging: *logging
+
+  api:
+    # On the VPS set VOLT_IMAGE to a pre-built image (e.g. ghcr.io/...) and run
+    # `docker compose pull`, so the 1 GB Go build image never lands on the disk.
+    image: ${VOLT_IMAGE:-volt:latest}
+    build: .
+    container_name: volt_api
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      # Values without "=" are taken from the shell (e.g. loaded by direnv from .envrc).
+      - EVN_USERNAME
+      - EVN_PASSWORD
+      - EVN_CUSTOMER
+      - EVN_BASE_URL
+      - EVN_LOGIN_API
+      - EVN_ELECTRICITY_CONSUMPTION_API
+      - TELEGRAM_API_KEY
+      - TELEGRAM_CHAT_ID
+      - APP_NAME=volt
+      - APP_ENV=${APP_ENV:-production}
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-admin}
+      - DB_PASS=${DB_PASS:-password}
+      - DB_NAME=${DB_NAME:-volt}
+      - DB_SSL_MODE=disable
+    ports:
+      - "8080:8080"
+    logging: *logging
 
 volumes:
   db-data:
